@@ -16,4 +16,4 @@ ENV SERVICE_PORT 8080
 ENV METRICS_PORT 8081
 EXPOSE 8080 8081
 
-CMD ["node", "dist/server.js"]
+CMD ["npm", "start"]

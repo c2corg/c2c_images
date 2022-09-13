@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "run": "node ./dist/server.js",
+    "start": "node ./dist/server.js",
     "build": "tsc",
     "lint": "eslint src/ test/",
     "lint:ci": "eslint src/ test/ -f junit -o ./reports/junit/eslint-results.xml",
