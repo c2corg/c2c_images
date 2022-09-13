@@ -1,6 +1,7 @@
 import aws, { S3 } from 'aws-sdk';
 import fs from 'node:fs';
 import path from 'node:path';
+import sanitize from 'sanitize-filename';
 import { CACHE_CONTROL, STORAGE_BACKEND, TEMP_FOLDER } from './config.js';
 import { getMimeTypeFromKey } from './filetype.js';
 
@@ -27,7 +28,7 @@ export class LocalStorage implements Storage {
   }
 
   public path(key?: string) {
-    return key ? path.resolve(this.#baseDirectory, key) : this.#baseDirectory;
+    return key ? path.resolve(this.#baseDirectory, sanitize(key)) : this.#baseDirectory;
   }
 
   public async exists(key: string): Promise<boolean> {

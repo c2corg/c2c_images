@@ -59,6 +59,7 @@
     "debug": "^4.3.4",
     "koa": "^2.13.4",
     "koa-body": "^4.2.0",
-    "prom-client": "^14.1.0"
+    "prom-client": "^14.1.0",
+    "sanitize-filename": "^1.6.3"
   }
 }
