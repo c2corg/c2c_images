@@ -1,6 +1,6 @@
 # Image backend service
 
-[![GitHub license](https://img.shields.io/github/license/c2corg/c2c_images.svg)](https://github.com/c2corg/c2c_images/blob/master/LICENSE)
+[![GitHub license](https://img.shields.io/github/license/c2corg/c2c_images)](https://github.com/c2corg/c2c_images/blob/master/LICENSE)
 ![Build status](https://github.com/c2corg/c2c_images/actions/workflows/build.yml/badge.svg)
 
 This project handles receiving images from the user and generating smaller
