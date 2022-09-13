@@ -6,7 +6,7 @@ RUN apk add --no-cache \
 
 COPY --chown=node:node package.json package-lock.json tsconfig.json ./
 COPY --chown=node:node src ./src
-RUN npm run build
+RUN npm install && npm run build
 
 # Clean dev packages
 RUN npm prune --production
