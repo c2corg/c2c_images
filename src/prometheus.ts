@@ -4,7 +4,7 @@ import { SERVICE_NAME } from './config.js';
 register.setDefaultLabels({ service: SERVICE_NAME });
 
 // default metrics
-if (!process.env.JEST_WORKER_ID) {
+if (!process.env['JEST_WORKER_ID']) {
   collectDefaultMetrics();
 }
 
@@ -22,4 +22,4 @@ const info = new Gauge({
 });
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-info.labels(process.env.npm_package_version!, process.env.NODE_ENV || '').set(1);
+info.labels(process.env['npm_package_version']!, process.env['NODE_ENV'] || '').set(1);

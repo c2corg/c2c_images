@@ -1,4 +1,4 @@
-import Application from 'koa';
+import type Application from 'koa';
 import crypto from 'node:crypto';
 
 export const multiParams = (

@@ -1,4 +1,4 @@
-import Koa from 'koa';
+import type Koa from 'koa';
 import { API_SECRET_KEY } from './config.js';
 
 export const apiOnly: Koa.Middleware = async (ctx, next) => {
@@ -7,4 +7,5 @@ export const apiOnly: Koa.Middleware = async (ctx, next) => {
     return ctx.throw(403, 'Bad secret key.');
   }
   await next();
+  return;
 };

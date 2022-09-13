@@ -22,7 +22,7 @@ router.get('/ping', async ctx => {
 // This endpoint is called directly by the UI.
 router.post('/upload', koaBody({ multipart: true }), async ctx => {
   const keyPrefix = createUniqueKey();
-  const file = ctx.request.files && ctx.request.files.file;
+  const file = ctx.request.files && ctx.request.files['file'];
 
   if (Array.isArray(file)) {
     return ctx.throw(400, `Bad request. Only one file allowed.`);
@@ -61,6 +61,7 @@ router.post('/upload', koaBody({ multipart: true }), async ctx => {
   ctx.body = {
     filename: `${keyPrefix}.${format}`
   };
+  return;
 });
 
 // Publish images from incoming storage to active storage
@@ -73,7 +74,7 @@ router.post('/publish', koaBody({ multipart: true }), apiOnly, async ctx => {
   const incoming = await incomingStorage.exists(key);
 
   if (!published && !incoming) {
-    return ctx.throw(400, 'Unknown image.');
+    ctx.throw(400, 'Unknown image.');
   }
 
   if (!published) {

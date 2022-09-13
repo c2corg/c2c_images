@@ -208,17 +208,17 @@ let incomingStorage: Storage;
 let activeStorage: Storage;
 
 if (STORAGE_BACKEND === 's3') {
-  if (!process.env.INCOMING_BUCKET || !process.env.ACTIVE_BUCKET) {
+  if (!process.env['INCOMING_BUCKET'] || !process.env['ACTIVE_BUCKET']) {
     throw new Error('INCOMING_BUCKET and ACTIVE_BUCKET must be defined');
   }
-  incomingStorage = new S3Storage(process.env.INCOMING_BUCKET, getS3Params('INCOMING'), 'private', true);
-  activeStorage = new S3Storage(process.env.ACTIVE_BUCKET, getS3Params('ACTIVE'), 'public-read');
-} else if (process.env.STORAGE_BACKEND === 'local') {
-  if (!process.env.INCOMING_FOLDER || !process.env.ACTIVE_FOLDER) {
+  incomingStorage = new S3Storage(process.env['INCOMING_BUCKET'], getS3Params('INCOMING'), 'private', true);
+  activeStorage = new S3Storage(process.env['ACTIVE_BUCKET'], getS3Params('ACTIVE'), 'public-read');
+} else if (process.env['STORAGE_BACKEND'] === 'local') {
+  if (!process.env['INCOMING_FOLDER'] || !process.env['ACTIVE_FOLDER']) {
     throw new Error('INCOMING_FOLDER and ACTIVE_FOLDER must be defined');
   }
-  incomingStorage = new LocalStorage(process.env.INCOMING_FOLDER);
-  activeStorage = new LocalStorage(process.env.ACTIVE_FOLDER);
+  incomingStorage = new LocalStorage(process.env['INCOMING_FOLDER']);
+  activeStorage = new LocalStorage(process.env['ACTIVE_FOLDER']);
 } else {
   throw new Error('STORAGE_BACKEND not supported or missing');
 }

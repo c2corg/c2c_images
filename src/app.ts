@@ -30,7 +30,7 @@ koa.use(async (ctx, next) => {
         message = error.message;
         break;
       default:
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env['NODE_ENV'] === 'development') {
           message = typeof error?.message === 'string' ? error.message : JSON.stringify(error.message);
         } else {
           message = 'Internal server error';
