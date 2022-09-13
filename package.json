@@ -1,0 +1,63 @@
+{
+  "name": "c2c_images",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/ test/",
+    "lint:ci": "eslint src/ test/ -f junit -o ./reports/junit/eslint-results.xml",
+    "test": "npm run test:unit",
+    "test:ci": "npm run test:ci:unit && npm run test:ci:s3",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:ci:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.ci.mjs --runInBand",
+    "test:s3": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.s3.mjs --runInBand",
+    "test:ci:s3": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.s3.ci.mjs --runInBand",
+    "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/c2corg/c2c_images.git"
+  },
+  "author": "",
+  "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/c2corg/c2c_images/issues",
+    "email": "dev@camptocamp.org"
+  },
+  "homepage": "https://www.camptocamp.org",
+  "devDependencies": {
+    "@types/command-exists": "^1.2.0",
+    "@types/cross-spawn": "^6.0.2",
+    "@types/debug": "^4.1.7",
+    "@types/jest": "^29.0.0",
+    "@types/koa": "^2.13.5",
+    "@types/koa__cors": "^3.3.0",
+    "@types/koa__router": "^8.0.11",
+    "@types/koa2-cors": "^2.0.2",
+    "@types/node": "^18.7.17",
+    "@types/supertest": "^2.0.12",
+    "@typescript-eslint/eslint-plugin": "^5.36.2",
+    "@typescript-eslint/parser": "^5.36.2",
+    "eslint": "^8.23.1",
+    "eslint-config-prettier": "^8.5.0",
+    "husky": "^8.0.0",
+    "image-size": "^1.0.2",
+    "jest": "^28.1.3",
+    "jest-junit": "^14.0.1",
+    "lint-staged": "^13.0.3",
+    "prettier": "^2.7.1",
+    "supertest": "^6.2.4",
+    "ts-jest": "^28.0.8"
+  },
+  "dependencies": {
+    "@koa/cors": "^3.4.1",
+    "@koa/router": "^12.0.0",
+    "aws-sdk": "^2.1214.0",
+    "command-exists": "^1.2.9",
+    "cross-spawn": "^7.0.3",
+    "debug": "^4.3.4",
+    "koa": "^2.13.4",
+    "koa-body": "^4.2.0",
+    "prom-client": "^14.1.0"
+  }
+}

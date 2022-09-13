@@ -1,0 +1,21 @@
+name: 'Github Code scanning'
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 5 * * 3'
+
+jobs:
+  CodeQL-Build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2

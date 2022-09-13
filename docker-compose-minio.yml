@@ -1,0 +1,12 @@
+minio:
+  image: minio/minio
+  environment:
+    MINIO_ACCESS_KEY: minio
+    MINIO_SECRET_KEY: miniosecret
+  command:
+    - server
+    - /data
+  volumes:
+    - ./data:/data:rw
+  ports:
+    - 9000:9000
