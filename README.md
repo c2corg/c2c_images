@@ -57,7 +57,7 @@ _PREFIX_`_ACCESS_KEY_ID`: API key for corresponding prefix.
 
 _PREFIX_`_SECRET_KEY`: Secret key for corresponding prefix.
 
-_PREFIX_`DEFAULT_REGION`: Default region for corresponding prefix.
+_PREFIX_`_DEFAULT_REGION`: Default region for corresponding prefix.
 
 `API_SECRET_KEY`: API secret key, needed to publish images on the active
 bucket.
