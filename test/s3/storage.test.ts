@@ -8,9 +8,9 @@ describe('S3 storage', () => {
   let activeStorage: S3Storage;
   beforeAll(() => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    incomingStorage = new S3Storage(process.env.INCOMING_BUCKET!, getS3Params('INCOMING'), 'private', true);
+    incomingStorage = new S3Storage(process.env['INCOMING_BUCKET']!, getS3Params('INCOMING'), 'private', true);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    activeStorage = new S3Storage(process.env.ACTIVE_BUCKET!, getS3Params('ACTIVE'), 'public-read');
+    activeStorage = new S3Storage(process.env['ACTIVE_BUCKET']!, getS3Params('ACTIVE'), 'public-read');
   });
 
   test('Standard protocol', async () => {
