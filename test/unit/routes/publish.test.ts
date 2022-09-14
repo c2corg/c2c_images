@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { koa } from '../../../src/app.js';
 import { activeStorage, incomingStorage } from '../../../src/storage.js';
-import { createUniqueKey } from '../../../src/utils.js';
+import { generateUniqueKeyPrefix } from '../../../src/utils.js';
 
 describe('POST /publish', () => {
   test('requires api secret', async () => {
@@ -17,13 +17,15 @@ describe('POST /publish', () => {
   });
 
   test('bad file', async () => {
-    const response = await request(koa.callback()).post('/publish').send({ secret: 'my secret', filename: 'foo' });
+    const response = await request(koa.callback())
+      .post('/publish')
+      .send({ secret: 'my secret', filename: '1234567890_1234567890.jpg' });
     expect(response.text).toBe('Unknown image.');
     expect(response.status).toBe(400);
   });
 
   test('publish image in incoming', async () => {
-    const key = createUniqueKey();
+    const key = generateUniqueKeyPrefix();
     await incomingStorage.put(`${key}.png`, 'test/data/piano.png');
     await incomingStorage.put(`${key}BI.png`, 'test/data/piano.png');
     const response = await request(koa.callback())
@@ -38,7 +40,7 @@ describe('POST /publish', () => {
   });
 
   test('publish already published image', async () => {
-    const key = createUniqueKey();
+    const key = generateUniqueKeyPrefix();
     await activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
     await activeStorage.put(`${key}BI.jpg`, 'test/data/violin.jpg');
     const response = await request(koa.callback())

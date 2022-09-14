@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { koa } from '../../../src/app.js';
 import { activeStorage } from '../../../src/storage.js';
-import { createUniqueKey } from '../../../src/utils.js';
+import { generateUniqueKeyPrefix } from '../../../src/utils.js';
 
 describe('POST /delete', () => {
   test('requires api secret', async () => {
@@ -12,12 +12,12 @@ describe('POST /delete', () => {
 
   test('requires filenames', async () => {
     const response = await request(koa.callback()).post('/delete').send({ secret: 'my secret' });
-    expect(response.text).toBe('Bad parameter. "filenames"');
+    expect(response.text).toBe('Bad parameter "filenames"');
     expect(response.status).toBe(400);
   });
 
   test('deletes one file', async () => {
-    const key = createUniqueKey();
+    const key = generateUniqueKeyPrefix();
     activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
     activeStorage.put(`${key}SI.jpg`, 'test/data/violin.jpg');
     const response = await request(koa.callback())
@@ -30,8 +30,8 @@ describe('POST /delete', () => {
   });
 
   test('deletes several files', async () => {
-    const key1 = createUniqueKey();
-    const key2 = createUniqueKey();
+    const key1 = generateUniqueKeyPrefix();
+    const key2 = generateUniqueKeyPrefix();
     activeStorage.put(`${key1}.jpg`, 'test/data/violin.jpg');
     activeStorage.put(`${key2}.jpg`, 'test/data/violin.jpg');
     const response = await request(koa.callback())

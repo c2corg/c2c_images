@@ -1,39 +1,19 @@
-import type Application from 'koa';
+import type { File } from 'formidable';
 import crypto from 'node:crypto';
+import { RESIZING_CONFIG } from './config';
 
-export const multiParams = (
-  ctx: Application.ParameterizedContext<unknown>,
-  input: string | string[],
-  name: string
-): string[] => {
-  const inputs = Array.isArray(input) ? input : [input];
-  if (inputs.some(value => typeof value !== 'string')) {
-    return ctx.throw(400, `Bad parameter. "${name}"`);
-  }
-  return inputs;
-};
+export const keyRegex = new RegExp(
+  `^\\d{10}_\\d{10}(${RESIZING_CONFIG.map(({ suffix }) => suffix).join('|')})?\\.(jpg|png|gif|svg)$`
+);
 
-export const uniqueParam = (
-  ctx: Application.ParameterizedContext<unknown>,
-  input: string | string[],
-  name: string
-): string => {
-  if (Array.isArray(input) || typeof input !== 'string') {
-    return ctx.throw(400, `Bad parameter. "${name}"`);
-  }
-  return input;
-};
+export const isFileParameterValid = (file: File | File[] | undefined): file is File =>
+  !!file && !Array.isArray(file) && file.size > 0;
 
-export const uniqueOptionalParam = (
-  ctx: Application.ParameterizedContext<unknown>,
-  input: string | string[],
-  name: string
-): string | undefined => {
-  if (input) {
-    return uniqueParam(ctx, input, name);
-  }
-  return undefined;
-};
+export const isKeyParameterValid = (input?: unknown): input is string =>
+  !!input && !Array.isArray(input) && typeof input === 'string' && keyRegex.test(input);
 
-export const createUniqueKey = () =>
+export const isKeysParameterValid = (inputs?: unknown): inputs is string | string[] =>
+  !!inputs && Array.isArray(inputs) && inputs.every(input => typeof input === 'string' && keyRegex.test(input));
+
+export const generateUniqueKeyPrefix = () =>
   `${Math.floor(Date.now() / 1000)}_${crypto.randomInt(9999999999).toString().padStart(10, '0')}`;

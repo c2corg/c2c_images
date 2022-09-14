@@ -14,7 +14,7 @@ describe('POST /upload', () => {
   test('expects a file', async () => {
     const response = await request(koa.callback()).post('/upload');
     expect(response.status).toBe(400);
-    expect(response.text).toBe('Bad request. No file provided.');
+    expect(response.text).toBe('Bad request. Exactly one file has to be provided.');
   });
 
   test('refuses unsupported formats', async () => {
