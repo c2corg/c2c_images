@@ -3,6 +3,7 @@
 [![GitHub license](https://img.shields.io/github/license/c2corg/c2c_images)](https://github.com/c2corg/c2c_images/blob/master/LICENSE)
 ![Build status](https://github.com/c2corg/c2c_images/actions/workflows/build.yml/badge.svg)
 ![Github code scanning](https://github.com/c2corg/c2c_images/actions/workflows/codeql-analysis.yml/badge.svg)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/95980766784c4f99865629175b4c96b6)](https://www.codacy.com/gh/c2corg/c2c_images/dashboard)
 
 This project handles receiving images from the user and generating smaller
 versions. It is using docker to be able to run it either together with the
