@@ -4,7 +4,7 @@ import { RESIZING_CONFIG } from '../../src/config.js';
 import { rasterizeSvg } from '../../src/convert.js';
 import { getFileFormat } from '../../src/filetype.js';
 import { createResizedImage } from '../../src/resizing.js';
-import { tempStorage } from '../../src/storage';
+import { tempStorage } from '../../src/storage.js';
 
 const RASTER_IMAGES = ['violin.jpg', 'piano.png', 'music.gif'];
 

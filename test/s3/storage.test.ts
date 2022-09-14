@@ -1,4 +1,4 @@
-import { getS3Params, S3Storage, tempStorage } from '../../src/storage';
+import { getS3Params, S3Storage, tempStorage } from '../../src/storage.js';
 
 const key = 'test.png';
 const file = 'test/data/piano.png';

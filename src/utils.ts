@@ -1,6 +1,6 @@
 import type { File } from 'formidable';
 import crypto from 'node:crypto';
-import { RESIZING_CONFIG } from './config';
+import { RESIZING_CONFIG } from './config.js';
 
 export const keyRegex = new RegExp(
   `^\\d{10}_\\d{10}(${RESIZING_CONFIG.map(({ suffix }) => suffix).join('|')})?\\.(jpg|png|gif|svg)$`

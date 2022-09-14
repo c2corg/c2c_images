@@ -1,4 +1,4 @@
-import { LocalStorage, tempStorage } from '../../src/storage';
+import { LocalStorage, tempStorage } from '../../src/storage.js';
 
 const key = 'test.png';
 const file = 'test/data/piano.png';
