@@ -111,6 +111,10 @@ Then run s3 test via
 
 Use `docker build` to build an image of the service.
 
+## Creating a version
+
+Use `npm version`.
+
 ## v6_images
 
 This project is a reimplementation of <https://github.com/c2corg/v6_images> in node / typescript.
