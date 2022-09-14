@@ -39,6 +39,13 @@ jobs:
       - name: Ensure docker-compose stopped
         run: docker-compose -f docker-compose-minio.yml stop || true
         if: always()
+      - name: Send coverage to codacy
+        # secrets are not available for PR from forks, and dependabot PRs
+        if: ${{ github.event_name != 'pull_request' && github.actor != 'dependabot[bot]' }}
+        uses: codacy/codacy-coverage-reporter-action@v1
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: reports/coverage/unit/lcov.info,reports/coverage/s3/lcov.info
   publish:
     # only publish if tests passed
     needs: test
