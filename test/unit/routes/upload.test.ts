@@ -5,14 +5,30 @@ import { incomingStorage } from '../../../src/storage.js';
 
 describe('OPTIONS /upload', () => {
   test('returns CORS options', async () => {
-    const response = await request(koa.callback()).options('/upload');
-    expect(response.status).toBe(200);
+    const response = await request(koa.callback())
+      .options('/upload')
+      .set('Origin', 'http://test.com')
+      .set('Access-Control-Request-Method', 'POST')
+      .expect('Access-Control-Allow-Origin', 'http://test.com')
+      .expect('Access-Control-Allow-Methods', 'GET,POST')
+      .expect('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization');
+    expect(response.status).toBe(204);
+  });
+});
+
+describe('PUT /upload', () => {
+  test('returns a NotImplemented', async () => {
+    const response = await request(koa.callback()).put('/upload');
+    expect(response.status).toBe(405);
   });
 });
 
 describe('POST /upload', () => {
   test('expects a file', async () => {
-    const response = await request(koa.callback()).post('/upload');
+    const response = await request(koa.callback())
+      .post('/upload')
+      .set('Origin', 'http://test.com')
+      .expect('Access-Control-Allow-Origin', 'http://test.com');
     expect(response.status).toBe(400);
     expect(response.text).toBe('Bad request. Exactly one file has to be provided.');
   });

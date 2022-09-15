@@ -1,10 +1,18 @@
+import cors from '@koa/cors';
 import Koa from 'koa';
-
 import { log } from './log.js';
 import { promErrorsCounter } from './prometheus.js';
 import { router } from './routes.js';
 
 const koa = new Koa();
+
+koa.use(
+  cors({
+    allowMethods: 'GET,POST',
+    allowHeaders: 'Origin, Content-Type, Accept, Authorization',
+    maxAge: '1728000'
+  })
+);
 
 // Top level error handling
 koa.use(async (ctx, next) => {
