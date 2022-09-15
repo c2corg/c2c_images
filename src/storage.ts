@@ -1,4 +1,5 @@
 import aws, { S3 } from 'aws-sdk';
+import type { Permission } from 'aws-sdk/clients/s3.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import sanitize from 'sanitize-filename';
@@ -182,6 +183,33 @@ export class S3Storage implements Storage {
       })
       .promise()
       .then(({ LastModified }) => LastModified);
+  }
+
+  public async getAllUsersGrants(key: string): Promise<Permission[]> {
+    return this.#client
+      .getObjectAcl({
+        Bucket: this.#bucketName,
+        Key: key
+      })
+      .promise()
+      .then(
+        ({ Grants }) =>
+          Grants?.filter(
+            ({ Grantee, Permission }) =>
+              Permission && Grantee?.URI === 'http://acs.amazonaws.com/groups/global/AllUsers'
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          ).map(({ Permission }) => Permission!) ?? []
+      );
+  }
+
+  public async expiresIn(key: string): Promise<Date | undefined> {
+    return this.#client
+      .headObject({
+        Bucket: this.#bucketName,
+        Key: key
+      })
+      .promise()
+      .then(({ Expires }) => Expires);
   }
 }
 
