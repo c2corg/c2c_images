@@ -155,7 +155,10 @@ export class S3Storage implements Storage {
         .copyObject({
           Bucket: destinationStorage.#bucketName,
           Key: key,
-          CopySource: `/${this.#bucketName}/${key}`
+          CopySource: `/${this.#bucketName}/${key}`,
+          CacheControl: CACHE_CONTROL,
+          ACL: destinationStorage.#defaultACL,
+          ContentType: getMimeTypeFromKey(key)
         })
         .promise()
         .then(() => undefined);
