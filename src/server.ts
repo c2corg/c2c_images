@@ -5,8 +5,8 @@ import { log } from './log.js';
 import { metricsServer } from './metrics.js';
 
 // check required tools exist
-log.info('Using rsvg-convert', rsvgConvertVersion());
-log.info('Using imagemagick', imageMagickVersion());
+log.info('Using rsvg-convert =>', rsvgConvertVersion());
+log.info('Using imagemagick =>', imageMagickVersion());
 
 // Listen for REST request
 koa.listen(SERVICE_PORT);

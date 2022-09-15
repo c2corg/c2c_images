@@ -31,7 +31,7 @@ export const rsvgConvertVersion = () => {
   if (!commandExists('rsvg-convert')) {
     throw new Error('Rsvg convert is required');
   }
-  return runSync('rsvg-convert', ['--version']);
+  return runSync('rsvg-convert', ['--version']).split('\n')[0];
 };
 
 export const imageMagickVersion = () => {
