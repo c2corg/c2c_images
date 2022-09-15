@@ -1,6 +1,7 @@
 import { getS3Params, S3Storage, tempStorage } from '../../src/storage.js';
+import { generateUniqueKeyPrefix } from '../../src/utils.js';
 
-const key = 'test.png';
+const key = `${generateUniqueKeyPrefix()}.png`;
 const file = 'test/data/piano.png';
 
 describe('S3 storage', () => {
