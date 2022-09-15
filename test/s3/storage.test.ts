@@ -1,6 +1,7 @@
 import { getS3Params, S3Storage, tempStorage } from '../../src/storage.js';
+import { generateUniqueKeyPrefix } from '../../src/utils.js';
 
-const key = 'test.png';
+const key = `${generateUniqueKeyPrefix()}.png`;
 const file = 'test/data/piano.png';
 
 describe('S3 storage', () => {
@@ -19,13 +20,16 @@ describe('S3 storage', () => {
 
     // move it in incoming storage waiting for publication
     await tempStorage.move(key, incomingStorage);
-    expect(await incomingStorage.exists(key)).toBe(true);
     expect(await tempStorage.exists(key)).toBe(false);
+    expect(await incomingStorage.exists(key)).toBe(true);
+    expect((await incomingStorage.expiresIn(key))?.getTime()).toBeLessThanOrEqual(Date.now() + 2 * 60 * 60 * 1000);
+    expect(await incomingStorage.getAllUsersGrants(key)).toEqual([]);
 
     // on publishing it is moved to active storage
     await incomingStorage.move(key, activeStorage);
-    expect(await activeStorage.exists(key)).toBe(true);
     expect(await incomingStorage.exists(key)).toBe(false);
+    expect(await activeStorage.exists(key)).toBe(true);
+    expect(await activeStorage.getAllUsersGrants(key)).toEqual(['READ']);
 
     // cleaning
     await activeStorage.delete(key);
