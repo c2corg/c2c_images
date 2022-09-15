@@ -192,14 +192,16 @@ export class S3Storage implements Storage {
         Key: key
       })
       .promise()
-      .then(
-        ({ Grants }) =>
+      .then(({ Grants }) => {
+        console.log(Grants);
+        return (
           Grants?.filter(
             ({ Grantee, Permission }) =>
               Permission && Grantee?.URI === 'http://acs.amazonaws.com/groups/global/AllUsers'
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           ).map(({ Permission }) => Permission!) ?? []
-      );
+        );
+      });
   }
 
   public async expiresIn(key: string): Promise<Date | undefined> {
