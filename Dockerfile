@@ -9,7 +9,7 @@ COPY --chown=node:node src ./src
 RUN npm install && npm run build
 
 # Clean dev packages
-RUN npm prune --production
+RUN npm prune --omit "dev"
 
 ENV DEBUG "c2c_images:*"
 ENV SERVICE_PORT 8080

@@ -2,10 +2,8 @@ import aws, { S3 } from 'aws-sdk';
 import fs from 'node:fs';
 import path from 'node:path';
 import sanitize from 'sanitize-filename';
-import { CACHE_CONTROL, STORAGE_BACKEND, TEMP_FOLDER } from './config.js';
+import { CACHE_CONTROL, S3_EXPIRE_HOURS, STORAGE_BACKEND, TEMP_FOLDER } from './config.js';
 import { getMimeTypeFromKey } from './filetype.js';
-
-const EXPIRE_HOURS = 2;
 
 export abstract class Storage {
   abstract exists(key: string): Promise<boolean>;
@@ -124,7 +122,7 @@ export class S3Storage implements Storage {
 
   public async put(key: string, originalFilePath: string): Promise<void> {
     const buffer = fs.readFileSync(originalFilePath);
-    const expires = this.#shouldExpire ? new Date(Date.now() + EXPIRE_HOURS * 1000 * 60 * 60) : undefined;
+    const expires = this.#shouldExpire ? new Date(Date.now() + S3_EXPIRE_HOURS * 1000 * 60 * 60) : undefined;
     return this.#client
       .putObject({
         Bucket: this.#bucketName,

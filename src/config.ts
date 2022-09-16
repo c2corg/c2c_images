@@ -30,3 +30,5 @@ export const RESIZING_CONFIG: ResizeConfig[] = process.env['RESIZING_CONFIG']
     ];
 export const AUTO_ORIENT_ORIGINAL = (process.env['AUTO_ORIENT_ORIGINAL'] || 0) === '1';
 export const CACHE_CONTROL = process.env['CACHE_CONTROL'] || 'public, max-age=3600';
+
+export const S3_EXPIRE_HOURS = 2;
