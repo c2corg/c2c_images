@@ -13,7 +13,7 @@
     "test:ci:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.ci.mjs --runInBand",
     "test:s3": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.s3.mjs --runInBand",
     "test:ci:s3": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.s3.ci.mjs --runInBand",
-    "clean:incoming": "node ./dist/clean.js",
+    "clean:incoming": "node ./dist/scripts/clean.js",
     "prepare": "husky install",
     "preversion": "npm run build && npm run lint && npm run test",
     "postversion": "git push --follow-tags --no-verify"
