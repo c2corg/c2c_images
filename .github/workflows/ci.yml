@@ -1,4 +1,4 @@
-name: 'Build'
+name: Continuous integration
 
 on:
   pull_request:
@@ -44,6 +44,7 @@ jobs:
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: reports/coverage/unit/lcov.info,reports/coverage/s3/lcov.info
+
   publish:
     # only publish if tests passed
     needs: test
@@ -68,3 +69,33 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
+
+  create-release:
+    needs: test
+    if: "contains(github.ref, 'refs/tags/v')"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Generate changelog for release
+        id: release_changelog
+        run: |
+          previousTag=$(git tag | sort -V -r | head -2 | awk '{split($0, tags, "\n")} END {print tags[1]}')
+          currentTag=$(git tag | sort -V -r | head -1)
+          changelog=$(git log --pretty=oneline ${previousTag}..${currentTag} --no-merges)
+          changelog="${changelog//'%'/'%25'}"
+          changelog="${changelog//$'\n'/'%0A'}"
+          changelog="${changelog//$'\r'/'%0D'}"
+          echo "::set-output name=changelog::$changelog"
+      - name: Create or update release
+        uses: meeDamian/github-release@2.0
+        with:
+          body: ${{ steps.release_changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allow_override: true
