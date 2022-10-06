@@ -64,11 +64,14 @@ _PREFIX_`_DEFAULT_REGION`: Default region for corresponding prefix.
 `API_SECRET_KEY`: API secret key, needed to publish images on the active
 bucket.
 
-`RESIZING_CONFIG`: Configuration of the thumbnail names and sizes serialized in JSON. See config.py for a description of the format.
+`RESIZING_CONFIG`: Configuration of the thumbnail names and sizes serialized
+in JSON. See config.py for a description of the format.
 
-`AUTO_ORIENT_ORIGINAL`: `1` to rotate the uploaded image according to the EXIF orientation. Default is `0`.
+`AUTO_ORIENT_ORIGINAL`: `1` to rotate the uploaded image according to the
+EXIF orientation. Default is `0`.
 
-`CACHE_CONTROL`: Cache-Control value to be set to all the images uploaded to s3. Default is `public, max-age=3600`.
+`CACHE_CONTROL`: Cache-Control value to be set to all the images uploaded
+to s3. Default is `public, max-age=3600`.
 
 Here is an example configuration with S3 backend on exoscale:
 
@@ -92,7 +95,8 @@ API_SECRET_KEY: xxx
 
 ## Cleaning
 
-The files which were not activated are automatically expired by S3 after 2 hours.
+The files which were not activated are automatically expired by S3 after 2
+hours.
 
 ## Testing
 
@@ -117,4 +121,5 @@ Use `npm version`.
 
 ## v6_images
 
-This project is a reimplementation of <https://github.com/c2corg/v6_images> in node / typescript.
+This project is a reimplementation of <https://github.com/c2corg/v6_images>
+in node / typescript.
