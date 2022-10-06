@@ -98,21 +98,19 @@ API_SECRET_KEY: xxx
 The files which were not activated are automatically expired by S3 after 2
 hours.
 
-For S3-compatible versions that don't support lifecycle management,
-you can use the `npm run clean:incoming` command to remove expired images.
+For S3-compatible versions that don't support lifecycle management, such as
+Exoscale SOS, you can use the `npm run clean:incoming` command to remove
+expired images.
 
 ## Testing
 
-You need rsvg-convert and imagemagick installed.
+You need `rsvg-convert` and `imagemagick` installed.
 
-Run unit tests via
-`npm run test`
+Run unit tests via `npm run test`
 
 For s3 tests, you need to run a local instance of minio via docker
-`docker-compose -f docker-compose-minio.yml up`
-
-Then run s3 test via
-`npm run test:s3`
+`docker-compose -f docker-compose-minio.yml up`.
+Then run s3 tests via `npm run test:s3`
 
 ## Building and running with Docker
 
@@ -121,6 +119,13 @@ Use `docker build` to build an image of the service.
 ## Creating a version
 
 Use `npm version`.
+
+## Prometheus metrics
+
+Several prometheus metrics are exposed on port `METRICS_PORT` with path
+`METRICS_PATH` (defaults to <http://localhost:8081/metrics>).
+
+You can disable all metrics by setting `DISABLE_PROMETHEUS_METRICS` to `1`.
 
 ## v6_images
 

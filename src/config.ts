@@ -3,6 +3,7 @@ export const SERVICE_NAME = 'c2c_images';
 export const SERVICE_PORT = process.env['SERVICE_PORT'] || 8080;
 export const METRICS_PORT = process.env['METRICS_PORT'] || 8081;
 export const METRICS_PATH = process.env['METRICS_PATH'] || '/metrics';
+export const DISABLE_PROMETHEUS_METRICS = (process.env['DISABLE_PROMETHEUS_METRICS'] || 0) === '1';
 
 export const API_SECRET_KEY = process.env['API_SECRET_KEY'];
 
