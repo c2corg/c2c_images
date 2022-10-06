@@ -6,6 +6,7 @@ import { autoOrient } from './autoorient.js';
 import { AUTO_ORIENT_ORIGINAL } from './config.js';
 import { getFileFormat } from './filetype.js';
 import { log } from './log.js';
+import { promDeletedImagesCounter, promPublishedImagesCounter, promUploadedImagesCounter } from './prometheus.js';
 import { createResizedImages, resizedKeys } from './resizing.js';
 import { activeStorage, incomingStorage, tempStorage } from './storage.js';
 import { generateUniqueKeyPrefix, isFileParameterValid, isKeyParameterValid, isKeysParameterValid } from './utils.js';
@@ -56,6 +57,8 @@ router.post('/upload', koaBody({ multipart: true }), async ctx => {
   }
 
   log.debug(`${keyPrefix} - returning response`);
+
+  promUploadedImagesCounter.inc({ format }, 1);
   ctx.body = {
     filename: `${keyPrefix}.${format}`
   };
@@ -87,6 +90,8 @@ router.post('/publish', koaBody({ multipart: true }), apiOnly, async ctx => {
     }
 
     await incomingStorage.move(key, activeStorage);
+
+    promPublishedImagesCounter.inc(1);
   }
 
   ctx.body = { success: true };
@@ -117,5 +122,6 @@ router.post('/delete', koaBody({ multipart: true }), apiOnly, async ctx => {
     }
   }
 
+  promDeletedImagesCounter.inc(1);
   ctx.body = { success: true };
 });
