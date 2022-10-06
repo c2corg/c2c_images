@@ -42,7 +42,8 @@ export const promErrorsCounter = new Counter({
 // uploaded images
 export const promUploadedImagesCounter = new Counter({
   name: 'uploaded_images',
-  help: 'Counter of images uploaded to the incoming bucket'
+  help: 'Counter of images uploaded to the incoming bucket',
+  labelNames: ['format'] as const
 });
 
 // published images
