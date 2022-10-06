@@ -98,6 +98,9 @@ API_SECRET_KEY: xxx
 The files which were not activated are automatically expired by S3 after 2
 hours.
 
+For S3-compatible versions that don't support lifecycle management,
+you can use the `npm run clean:incoming` command to remove expired images.
+
 ## Testing
 
 You need rsvg-convert and imagemagick installed.
