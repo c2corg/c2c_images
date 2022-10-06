@@ -1,7 +1,7 @@
 import cors from '@koa/cors';
 import Koa from 'koa';
 import { log } from './log.js';
-import { promErrorsCounter } from './prometheus.js';
+import { promErrorsCounter, promHttpReporter } from './prometheus.js';
 import { router } from './routes.js';
 
 const koa = new Koa();
@@ -13,6 +13,9 @@ koa.use(
     maxAge: '1728000'
   })
 );
+
+// Track response times
+koa.use(promHttpReporter);
 
 // Top level error handling
 koa.use(async (ctx, next) => {
