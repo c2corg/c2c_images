@@ -24,7 +24,7 @@ jobs:
           MINIO_ACCESS_KEY: minio
           MINIO_SECRET_KEY: miniosecret
         volumes:
-          - $GITHUB_WORKSPACE/data:/data
+          - ${GITHUB_WORKSPACE}/data:/data
         options: >-
           --entrypoint "server /data"
     steps:
