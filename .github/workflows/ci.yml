@@ -15,14 +15,14 @@ jobs:
     strategy:
       matrix:
         node-version: ['lts/*']
+    env:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: miniosecret
     services:
       minio:
         image: minio/minio
         ports:
           - 9000:9000
-        env:
-          MINIO_ACCESS_KEY: minio
-          MINIO_SECRET_KEY: miniosecret
     steps:
       - name: Install imagemagick and rsvg-convert
         run: sudo apt-get install -y imagemagick librsvg2-bin
@@ -32,7 +32,7 @@ jobs:
         run: |
           wget https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
-          until (./mc alias set minio http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY) do echo '...waiting...' && sleep 1; done;
+          ./mc alias set minio http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
           ./mc mb minio/incoming
           ./mc mb minio/active
           ./mc anonymous set-json data/.minio.sys/buckets/active/policy.json minio/active
