@@ -26,23 +26,21 @@ jobs:
     steps:
       - name: Install imagemagick and rsvg-convert
         run: sudo apt-get install -y imagemagick librsvg2-bin
-      - name: Install minio client
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install minio client and initialize minio buckets
         run: |
           wget https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
-      - name: Checkout
-        uses: actions/checkout@v3
+          ./mc alias set minio http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+          ./mc mb minio/incoming
+          ./mc mb minio/active
+          ./mc anonymous set-json data/.minio.sys/buckets/active/policy.json minio/active
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      - name: Initialize minio buckets
-        run: |
-          ./mc alias set minio http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
-          ./mc mb minio/incoming
-          ./mc mb minio/active
-          ./mc anonymous set-json data/.minio.sys/buckets/active/policy.json minio/active
       - name: npm install, lint and build
         run: |
           npm ci
