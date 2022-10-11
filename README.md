@@ -65,7 +65,7 @@ _PREFIX_`_DEFAULT_REGION`: Default region for corresponding prefix.
 bucket.
 
 `RESIZING_CONFIG`: Configuration of the thumbnail names and sizes serialized
-in JSON. See config.py for a description of the format.
+in JSON. See src/config.ts for a description of the format.
 
 `AUTO_ORIENT_ORIGINAL`: `1` to rotate the uploaded image according to the
 EXIF orientation. Default is `0`.
