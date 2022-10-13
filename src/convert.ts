@@ -13,11 +13,11 @@ export const transform = (originalFile: string, targetFile: string, options: str
   runSync(useImageMagick7 ? 'magick' : 'convert', [originalFile, ...options, targetFile]);
 };
 
-export const identify = (filename: string): string => {
+export const identify = (filename: string, pattern = '%m'): string => {
   try {
     const format = useImageMagick7
-      ? runSync('magick', ['identify', '-format', '%m', filename])
-      : runSync('identify', ['-format', '%m', filename]);
+      ? runSync('magick', ['identify', '-format', pattern, filename])
+      : runSync('identify', ['-format', pattern, filename]);
     if (!format) {
       throw new Error();
     }

@@ -1,6 +1,7 @@
 /* global process */
 import os from 'node:os';
 
+process.env.NODE_ENV = 'development';
 process.env.STORAGE_BACKEND = 's3';
 process.env.TEMP_FOLDER = `${os.tmpdir}/temp`;
 process.env.INCOMING_BUCKET = 'incoming';

@@ -58,6 +58,12 @@ export const promDeletedImagesCounter = new Counter({
   help: 'Counter of images deleted from the active bucket'
 });
 
+// rotated images
+export const promRotatedImagesCounter = new Counter({
+  name: 'rotated_images',
+  help: 'Counter of images rotated in the active bucket'
+});
+
 // service info
 new Gauge({
   name: `service_info`,

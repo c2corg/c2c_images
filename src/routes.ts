@@ -6,10 +6,22 @@ import { autoOrient } from './autoorient.js';
 import { AUTO_ORIENT_ORIGINAL } from './config.js';
 import { getFileFormat } from './filetype.js';
 import { log } from './log.js';
-import { promDeletedImagesCounter, promPublishedImagesCounter, promUploadedImagesCounter } from './prometheus.js';
+import {
+  promDeletedImagesCounter,
+  promPublishedImagesCounter,
+  promRotatedImagesCounter,
+  promUploadedImagesCounter
+} from './prometheus.js';
 import { createResizedImages, resizedKeys } from './resizing.js';
+import { rotateImages } from './rotate.js';
 import { activeStorage, incomingStorage, tempStorage } from './storage.js';
-import { generateUniqueKeyPrefix, isFileParameterValid, isKeyParameterValid, isKeysParameterValid } from './utils.js';
+import {
+  generateUniqueKeyPrefix,
+  isFileParameterValid,
+  isKeyParameterValid,
+  isKeysParameterValid,
+  isRotationParameterValid
+} from './utils.js';
 
 export const router = new Router();
 
@@ -123,5 +135,31 @@ router.post('/delete', koaBody({ multipart: true }), apiOnly, async ctx => {
   }
 
   promDeletedImagesCounter.inc(1);
+  ctx.body = { success: true };
+});
+
+router.post('/rotate', koaBody({ multipart: true }), apiOnly, async ctx => {
+  const { rotation = '90', filename: key } = ctx.request.body;
+
+  if (!isKeyParameterValid(key)) {
+    ctx.throw(400, 'Bad parameter "filename".');
+    return;
+  }
+
+  if (!isRotationParameterValid(rotation)) {
+    ctx.throw(400, 'Bad parameter "rotation" must be -90, 90 or 180');
+    return;
+  }
+
+  const published = await activeStorage.exists(key);
+
+  if (!published) {
+    ctx.throw(404, 'Not found');
+    return;
+  }
+
+  await rotateImages(key, rotation);
+
+  promRotatedImagesCounter.inc(1);
   ctx.body = { success: true };
 });

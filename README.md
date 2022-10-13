@@ -93,6 +93,59 @@ EXO_SECRET_KEY: xxx
 API_SECRET_KEY: xxx
 ```
 
+## Endpoints
+
+### health
+
+`GET /ping`
+
+Unauthenticated request.
+
+### upload
+
+`POST /upload`
+
+Parameters:
+
+- file (File)
+
+Publishes the image to the incoming bucket, along with its generated
+thumbnails.
+
+### publish
+
+`POST /publish`
+
+Parameters:
+
+- secret (JWT token)
+- filename (key of the published image)
+
+Moves the images and its thumbnails to the active bucket.
+
+### delete
+
+`POST /delete`
+
+Parameters:
+
+- secret (JWT token)
+- filename (key of the image to be deleted)
+
+Removes the image and its thumbnails from the active bucket.
+
+### rotate
+
+`POST /rotate`
+
+Parameters:
+
+- secret (JWT token)
+- filename (key of the image to be rotated)
+- rotation (optional, 90, -90 or 180)
+
+Rotates the image and its thumbnails in the active bucket.
+
 ## Cleaning
 
 The files which were not activated are automatically expired by S3 after 2

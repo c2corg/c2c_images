@@ -15,5 +15,8 @@ export const isKeyParameterValid = (input?: unknown): input is string =>
 export const isKeysParameterValid = (inputs?: unknown): inputs is string | string[] =>
   !!inputs && Array.isArray(inputs) && inputs.every(input => typeof input === 'string' && keyRegex.test(input));
 
+export const isRotationParameterValid = (input?: unknown): input is string =>
+  !!input && !Array.isArray(input) && typeof input === 'string' && ['-90', '90', '180'].includes(input);
+
 export const generateUniqueKeyPrefix = () =>
   `${Math.floor(Date.now() / 1000)}_${crypto.randomInt(9999999999).toString().padStart(10, '0')}`;
