@@ -145,6 +145,7 @@ Parameters:
 - rotation (optional, 90, -90 or 180)
 
 Rotates the image and its thumbnails in the active bucket.
+A new key will be returned, in order to avoid cache issues.
 
 ## Cleaning
 

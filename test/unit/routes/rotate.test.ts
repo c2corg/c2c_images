@@ -1,8 +1,9 @@
+import path from 'node:path';
 import request from 'supertest';
 import { koa } from '../../../src/app.js';
 import { getFileSize } from '../../../src/filesize.js';
 import { activeStorage, tempStorage } from '../../../src/storage';
-import { generateUniqueKeyPrefix } from '../../../src/utils.js';
+import { generateUniqueKeyPrefix, isKeyParameterValid } from '../../../src/utils.js';
 
 describe('POST /rotate', () => {
   test('requires api secret', async () => {
@@ -40,14 +41,25 @@ describe('POST /rotate', () => {
     const response = await request(koa.callback())
       .post('/rotate')
       .send({ secret: 'my secret', filename: `${key}.png`, rotation: '-90' });
-    console.log(response.text);
-    expect(JSON.parse(response.text)).toEqual({ success: true });
+
+    const { success, filename } = JSON.parse(response.text);
+    const { name: newKey, ext: newExt } = path.parse(filename);
+    expect(success).toBe(true);
+    expect(isKeyParameterValid(filename)).toBe(true);
+    expect(newKey).not.toBe(key);
+    expect(newExt).toBe('.png');
     expect(response.status).toBe(200);
-    expect(await activeStorage.exists(`${key}.png`)).toBe(true);
-    expect(await activeStorage.exists(`${key}BI.png`)).toBe(true);
+    expect(await activeStorage.exists(`${key}.png`)).toBe(false);
+    expect(await activeStorage.exists(`${key}BI.png`)).toBe(false);
+    expect(await activeStorage.exists(`${newKey}.png`)).toBe(true);
+    expect(await activeStorage.exists(`${newKey}BI.png`)).toBe(true);
+    // even non existing thumbnails are now generated
+    expect(await activeStorage.exists(`${newKey}SI.png`)).toBe(true);
 
     // check that the image has been actually rotated
-    await activeStorage.move(`${key}.png`, tempStorage);
-    expect(getFileSize(tempStorage.path(`${key}.png`))).toBe('551x1151');
+    await activeStorage.move(`${newKey}.png`, tempStorage);
+    await activeStorage.move(`${newKey}MI.png`, tempStorage);
+    expect(getFileSize(tempStorage.path(`${newKey}.png`))).toBe('551x1151');
+    expect(getFileSize(tempStorage.path(`${newKey}MI.png`))).toBe('191x400');
   });
 });

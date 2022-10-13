@@ -1,6 +1,7 @@
 import Router from '@koa/router';
 import koaBody from 'koa-body';
 import fs from 'node:fs';
+import path from 'node:path';
 import { apiOnly } from './apionly.js';
 import { autoOrient } from './autoorient.js';
 import { AUTO_ORIENT_ORIGINAL } from './config.js';
@@ -72,6 +73,7 @@ router.post('/upload', koaBody({ multipart: true }), async ctx => {
 
   promUploadedImagesCounter.inc({ format }, 1);
   ctx.body = {
+    success: true,
     filename: `${keyPrefix}.${format}`
   };
 });
@@ -158,8 +160,10 @@ router.post('/rotate', koaBody({ multipart: true }), apiOnly, async ctx => {
     return;
   }
 
-  await rotateImages(key, rotation);
+  const newKey = `${generateUniqueKeyPrefix()}${path.parse(key).ext}`;
+
+  await rotateImages(key, newKey, rotation);
 
   promRotatedImagesCounter.inc(1);
-  ctx.body = { success: true };
+  ctx.body = { success: true, filename: newKey };
 });
