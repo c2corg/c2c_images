@@ -27,7 +27,7 @@ describe('S3 storage', () => {
     expect(await tempStorage.exists(key)).toBe(false);
 
     // ensure that the file is not public
-    await request(activeStorage.baseUrl).get(`/${key}`).expect(403);
+    await request(incomingStorage.baseUrl).get(`/${key}`).expect(403);
 
     // on publishing it is moved to active storage
     await incomingStorage.move(key, activeStorage);

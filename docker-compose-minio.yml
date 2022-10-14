@@ -19,7 +19,7 @@ services:
       retries: 3
 
   # minio has dropped existing folder support
-  # We use mc to create the buckets andset anonymous access policy
+  # We use mc to create the buckets and set anonymous access policy
   initbuckets:
     image: minio/mc
     depends_on:
