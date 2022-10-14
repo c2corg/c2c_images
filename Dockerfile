@@ -9,9 +9,11 @@ RUN apk add --no-cache \
     ttf-inconsolata \
     ttf-dejavu \
     ttf-opensans \
-    font-bitstream-* \
-    font-noto \
-    font-noto-* \
+    font-bitstream-100dpi \
+    font-bitstream-75dpi \
+    font-bitstream-speedo \
+    font-bitstream-type1 \
+    font-noto-all \
     ttf-font-awesome \
     ttf-ubuntu-font-family \
     font-croscore \
