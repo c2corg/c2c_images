@@ -79,6 +79,7 @@ interface S3Params {
 }
 
 export class S3Storage implements Storage {
+  readonly #endpoint: string;
   readonly #bucketName: string;
   readonly #client: aws.S3;
   readonly #shouldExpire: boolean;
@@ -88,6 +89,7 @@ export class S3Storage implements Storage {
     this.#bucketName = bucketName;
     this.#shouldExpire = shouldExpire;
     this.#defaultACL = defaulACL;
+    this.#endpoint = params.endpoint;
     this.#client = new aws.S3({
       ...params,
       sslEnabled: true,
@@ -180,6 +182,10 @@ export class S3Storage implements Storage {
       })
       .promise()
       .then(({ LastModified }) => LastModified);
+  }
+
+  public get baseUrl(): string {
+    return `${this.#endpoint}/${this.#bucketName}`;
   }
 }
 

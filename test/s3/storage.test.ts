@@ -1,3 +1,4 @@
+import request from 'supertest';
 import { getS3Params, S3Storage, tempStorage } from '../../src/storage.js';
 import { generateUniqueKeyPrefix } from '../../src/utils.js';
 
@@ -22,6 +23,13 @@ describe('S3 storage', () => {
     await tempStorage.move(key, incomingStorage);
     expect(await incomingStorage.exists(key)).toBe(true);
     expect(await tempStorage.exists(key)).toBe(false);
+
+    // ensure that the file is public
+    await request(activeStorage.baseUrl)
+      .get(`/${key}`)
+      .expect(200)
+      .expect('Content-Type', 'image/png')
+      .expect('Cache-Control', 'public, max-age=3600');
 
     // on publishing it is moved to active storage
     await incomingStorage.move(key, activeStorage);
