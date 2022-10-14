@@ -99,7 +99,7 @@ API_SECRET_KEY: xxx
 
 `GET /ping`
 
-Unauthenticated request.
+Health check.
 
 ### upload
 

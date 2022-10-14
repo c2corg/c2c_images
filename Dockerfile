@@ -4,6 +4,24 @@ RUN apk add --no-cache \
     librsvg \
     imagemagick
 
+RUN apk add --no-cache \
+    terminus-font \
+    ttf-inconsolata \
+    ttf-dejavu \
+    ttf-opensans \
+    font-bitstream-* \
+    font-noto \
+    font-noto-* \
+    ttf-font-awesome \
+    ttf-ubuntu-font-family \
+    font-croscore \
+    ttf-cantarell \
+    ttf-linux-libertine \
+    ttf-liberation \
+    ttf-droid \
+    ttf-droid-nonlatin \
+    msttcorefonts-installer
+
 COPY --chown=node:node package.json package-lock.json tsconfig.json ./
 COPY --chown=node:node src ./src
 RUN npm install && npm run build
