@@ -1,14 +1,19 @@
+import fs from 'node:fs';
 import { LocalStorage, tempStorage } from '../../src/storage.js';
+import { generateUniqueKeyPrefix } from '../../src/utils.js';
 
-const key = 'test.png';
+const key = `${generateUniqueKeyPrefix()}.png`;
+const newKey = `${generateUniqueKeyPrefix()}.png`;
 const file = 'test/data/piano.png';
 
 describe('Local storage', () => {
   let incomingStorage: LocalStorage;
   let activeStorage: LocalStorage;
   beforeAll(() => {
-    incomingStorage = new LocalStorage('/tmp/incoming');
-    activeStorage = new LocalStorage('/tmp/active');
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    incomingStorage = new LocalStorage(process.env['INCOMING_FOLDER']!);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    activeStorage = new LocalStorage(process.env['ACTIVE_FOLDER']!);
   });
 
   test('Standard protocol', async () => {
@@ -33,23 +38,26 @@ describe('Local storage', () => {
     expect(activeStorage.delete('does_not_exist.jpg')).rejects.toThrow();
   });
 
-  test('Resizing protocol', async () => {
-    // for resizing object is in active storage
+  test('Rotating protocol', async () => {
+    // for rotating object is in active storage
     await activeStorage.put(key, file);
 
     // get object in temp storage
     await activeStorage.copy(key, tempStorage);
     expect(await tempStorage.exists(key)).toBe(true);
 
-    // resizing...
+    // simulate rotation..
+    fs.renameSync(tempStorage.path(key), tempStorage.path(newKey));
 
-    // move it back to active storage
-    await tempStorage.move(key, activeStorage);
-    expect(await activeStorage.exists(key)).toBe(true);
-    expect(await tempStorage.exists(key)).toBe(false);
-
-    // cleaning
+    // upload rotated file to active storage and delete original
+    await tempStorage.move(newKey, activeStorage);
     await activeStorage.delete(key);
     expect(await activeStorage.exists(key)).toBe(false);
+    expect(await activeStorage.exists(newKey)).toBe(true);
+    expect(await tempStorage.exists(newKey)).toBe(false);
+
+    // cleaning
+    await activeStorage.delete(newKey);
+    expect(await activeStorage.exists(newKey)).toBe(false);
   });
 });
