@@ -30,6 +30,8 @@ jobs:
           npm ci
           npm run lint:ci
           npm run build
+      # Note: we cannot set the command via github actions service containers
+      # but minio image requires it. We thus rely on docker-compose.
       - name: Run minio for testing s3
         run: docker-compose -f docker-compose-minio.yml up -d
       - name: Run the unit tests, as well as tests against minio

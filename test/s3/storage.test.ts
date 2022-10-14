@@ -1,7 +1,10 @@
+import fs from 'node:fs';
+import request from 'supertest';
 import { getS3Params, S3Storage, tempStorage } from '../../src/storage.js';
 import { generateUniqueKeyPrefix } from '../../src/utils.js';
 
 const key = `${generateUniqueKeyPrefix()}.png`;
+const newKey = `${generateUniqueKeyPrefix()}.png`;
 const file = 'test/data/piano.png';
 
 describe('S3 storage', () => {
@@ -23,10 +26,20 @@ describe('S3 storage', () => {
     expect(await incomingStorage.exists(key)).toBe(true);
     expect(await tempStorage.exists(key)).toBe(false);
 
+    // ensure that the file is not public
+    await request(incomingStorage.baseUrl).get(`/${key}`).expect(403);
+
     // on publishing it is moved to active storage
     await incomingStorage.move(key, activeStorage);
     expect(await activeStorage.exists(key)).toBe(true);
     expect(await incomingStorage.exists(key)).toBe(false);
+
+    // ensure that the file is public
+    await request(activeStorage.baseUrl)
+      .get(`/${key}`)
+      .expect(200)
+      .expect('Content-Type', 'image/png')
+      .expect('Cache-Control', 'public, max-age=3600');
 
     // cleaning
     await activeStorage.delete(key);
@@ -36,23 +49,26 @@ describe('S3 storage', () => {
     expect(activeStorage.delete('does_not_exist.jpg')).resolves.toBeUndefined();
   });
 
-  test('Resizing protocol', async () => {
-    // for resizing object is in active storage
+  test('Rotating protocol', async () => {
+    // for rotating object is in active storage
     await activeStorage.put(key, file);
 
     // get object in temp storage
     await activeStorage.copy(key, tempStorage);
     expect(await tempStorage.exists(key)).toBe(true);
 
-    // resizing...
+    // simulate rotation..
+    fs.renameSync(tempStorage.path(key), tempStorage.path(newKey));
 
-    // move it back to active storage
-    await tempStorage.move(key, activeStorage);
-    expect(await activeStorage.exists(key)).toBe(true);
-    expect(await tempStorage.exists(key)).toBe(false);
-
-    // cleaning
+    // upload rotated file to active storage and delete original
+    await tempStorage.move(newKey, activeStorage);
     await activeStorage.delete(key);
     expect(await activeStorage.exists(key)).toBe(false);
+    expect(await activeStorage.exists(newKey)).toBe(true);
+    expect(await tempStorage.exists(newKey)).toBe(false);
+
+    // cleaning
+    await activeStorage.delete(newKey);
+    expect(await activeStorage.exists(newKey)).toBe(false);
   });
 });

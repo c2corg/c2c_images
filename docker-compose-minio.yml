@@ -1,12 +1,35 @@
-minio:
-  image: minio/minio
-  environment:
-    MINIO_ACCESS_KEY: minio
-    MINIO_SECRET_KEY: miniosecret
-  command:
-    - server
-    - /data
-  volumes:
-    - ./data:/data:rw
-  ports:
-    - 9000:9000
+version: '3'
+services:
+  minio:
+    image: minio/minio
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: miniosecret
+    command:
+      - server
+      - /data
+    volumes:
+      - ./data:/data:rw
+    ports:
+      - 9000:9000
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost/minio/health/live']
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  # minio has dropped existing folder support
+  # We use mc to create the buckets and set anonymous access policy
+  initbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 minio miniosecret;
+      /usr/bin/mc mb myminio/active;
+      /usr/bin/mc mb myminio/incoming;
+      /usr/bin/mc anonymous set download myminio/active;
+      /usr/bin/mc anonymous set none myminio/incoming;
+      exit 0;
+      "
