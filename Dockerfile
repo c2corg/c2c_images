@@ -15,7 +15,6 @@ RUN apk add --no-cache \
     font-bitstream-type1 \
     font-noto-all \
     ttf-font-awesome \
-    ttf-ubuntu-font-family \
     font-croscore \
     ttf-cantarell \
     ttf-linux-libertine \
