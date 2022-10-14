@@ -119,7 +119,7 @@ thumbnails.
 Parameters:
 
 - secret (JWT token)
-- filename (key of the published image)
+- filename (key of the image to publish)
 
 Moves the images and its thumbnails to the active bucket.
 
@@ -130,7 +130,7 @@ Moves the images and its thumbnails to the active bucket.
 Parameters:
 
 - secret (JWT token)
-- filename (key of the image to be deleted)
+- filenames (key(s) of the image(s) to delete)
 
 Removes the image and its thumbnails from the active bucket.
 
