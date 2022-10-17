@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import request from 'supertest';
-import { getS3Params, S3Storage, tempStorage } from '../../src/storage.js';
-import { generateUniqueKeyPrefix } from '../../src/utils.js';
+import { generateUniqueKeyPrefix } from '../../src/koa/utils.js';
+import { getS3Params, S3Storage, tempStorage } from '../../src/storage/storage.js';
 
 const key = `${generateUniqueKeyPrefix()}.png`;
 const newKey = `${generateUniqueKeyPrefix()}.png`;
