@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { koa } from '../../../src/koa/app.js';
+import { koa } from '../../../../src/koa/app.js';
 
 describe('GET /ping', () => {
   test('responds without authentication', async () => {

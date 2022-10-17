@@ -13,7 +13,7 @@ API machine or on a separate machine.
 
 The original image uploaded by the user is:
 
-- optionally rotated according to the EXIF orientation value
+- optionally rotated according to the EXIF orientation value;
 - uniquely renamed using a timestamp and random number;
 - stored locally in an "incoming" directory;
 - converted to smaller sizes.
@@ -69,6 +69,14 @@ in JSON. See src/config.ts for a description of the format.
 
 `AUTO_ORIENT_ORIGINAL`: `1` to rotate the uploaded image according to the
 EXIF orientation. Default is `0`.
+
+`GENERATE_WEBP`: `1` to generate webp thumbnails along with jpeg/png/gif
+ones. Default is `0`. Ignored if imagemagick does not support writing
+to this format.
+
+`GENERATE_AVIF`: `1` to generate avif thumbnails along with jpeg/png/gif
+ones. Default is `0`. Ignored if imagemagick does not support writing
+to this format.
 
 `CACHE_CONTROL`: Cache-Control value to be set to all the images uploaded
 to s3. Default is `public, max-age=3600`.
@@ -162,9 +170,9 @@ You need `rsvg-convert` and `imagemagick` installed.
 
 Run unit tests via `npm run test`
 
-For s3 tests, you need to run a local instance of minio via docker
+To include s3 tests, you need to run a local instance of minio via docker
 `docker-compose -f docker-compose-minio.yml up`.
-Then run s3 tests via `npm run test:s3`
+Then run all tests via `npm run test:all`.
 
 ## Building and running with Docker
 

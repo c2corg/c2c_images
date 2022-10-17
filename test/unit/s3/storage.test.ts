@@ -1,19 +1,20 @@
 import fs from 'node:fs';
-import { generateUniqueKeyPrefix } from '../../src/koa/utils.js';
-import { LocalStorage, tempStorage } from '../../src/storage/storage.js';
+import request from 'supertest';
+import { generateUniqueKeyPrefix } from '../../../src/koa/utils.js';
+import { getS3Params, S3Storage, tempStorage } from '../../../src/storage/storage.js';
 
 const key = `${generateUniqueKeyPrefix()}.png`;
 const newKey = `${generateUniqueKeyPrefix()}.png`;
 const file = 'test/data/piano.png';
 
-describe('Local storage', () => {
-  let incomingStorage: LocalStorage;
-  let activeStorage: LocalStorage;
+describe('S3 storage', () => {
+  let incomingStorage: S3Storage;
+  let activeStorage: S3Storage;
   beforeAll(() => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    incomingStorage = new LocalStorage(process.env['INCOMING_FOLDER']!);
+    incomingStorage = new S3Storage(process.env['INCOMING_BUCKET']!, getS3Params('INCOMING'), 'private', true);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    activeStorage = new LocalStorage(process.env['ACTIVE_FOLDER']!);
+    activeStorage = new S3Storage(process.env['ACTIVE_BUCKET']!, getS3Params('ACTIVE'), 'public-read');
   });
 
   test('Standard protocol', async () => {
@@ -25,17 +26,27 @@ describe('Local storage', () => {
     expect(await incomingStorage.exists(key)).toBe(true);
     expect(await tempStorage.exists(key)).toBe(false);
 
+    // ensure that the file is not public
+    await request(incomingStorage.baseUrl).get(`/${key}`).expect(403);
+
     // on publishing it is moved to active storage
     await incomingStorage.move(key, activeStorage);
     expect(await activeStorage.exists(key)).toBe(true);
     expect(await incomingStorage.exists(key)).toBe(false);
 
+    // ensure that the file is public
+    await request(activeStorage.baseUrl)
+      .get(`/${key}`)
+      .expect(200)
+      .expect('Content-Type', 'image/png')
+      .expect('Cache-Control', 'public, max-age=3600');
+
     // cleaning
     await activeStorage.delete(key);
     expect(await activeStorage.exists(key)).toBe(false);
 
-    // delete a file that does not exist
-    expect(activeStorage.delete('does_not_exist.jpg')).rejects.toThrow();
+    // delete a file that does not exist won't throw in s3
+    expect(activeStorage.delete('does_not_exist.jpg')).resolves.toBeUndefined();
   });
 
   test('Rotating protocol', async () => {

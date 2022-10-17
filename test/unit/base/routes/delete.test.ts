@@ -1,7 +1,7 @@
 import request from 'supertest';
-import { koa } from '../../../src/koa/app.js';
-import { generateUniqueKeyPrefix } from '../../../src/koa/utils.js';
-import { activeStorage } from '../../../src/storage/storage.js';
+import { koa } from '../../../../src/koa/app.js';
+import { generateUniqueKeyPrefix } from '../../../../src/koa/utils.js';
+import { activeStorage } from '../../../../src/storage/storage.js';
 
 describe('POST /delete', () => {
   test('requires api secret', async () => {
