@@ -44,7 +44,7 @@ router.post('/upload', koaBody({ multipart: true }), async ctx => {
 
   let format: string;
   try {
-    format = getFileFormat(file.path);
+    format = getFileFormat(file.filepath);
   } catch (error: unknown) {
     ctx.throw(400, error instanceof Error ? error.message : `${error}`);
     return;
@@ -52,7 +52,7 @@ router.post('/upload', koaBody({ multipart: true }), async ctx => {
 
   // rename with 'official' extension
   const originalKey = `${keyPrefix}.${format}`;
-  fs.renameSync(file.path, tempStorage.path(originalKey));
+  fs.renameSync(file.filepath, tempStorage.path(originalKey));
 
   // auto orient
   if (AUTO_ORIENT_ORIGINAL && format === 'jpg') {
