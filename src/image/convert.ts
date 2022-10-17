@@ -58,3 +58,11 @@ const runSync = (command: string, args: string[]) => {
 
   return stdout.toString();
 };
+
+const isFormatSupported = (format: string): boolean =>
+  runSync(useImageMagick7 ? 'magick' : 'convert', ['-list', 'format']).match(
+    new RegExp(`^\\s+${format}\\*?\\s+\\w+\\s+[r-]([w-])[+-]`, 'm')
+  )?.[1] === 'w';
+
+export const isWebpSupported = isFormatSupported('WEBP');
+export const isAvifSupported = isFormatSupported('AVIF');
