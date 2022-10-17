@@ -2,8 +2,8 @@ import aws, { S3 } from 'aws-sdk';
 import fs from 'node:fs';
 import path from 'node:path';
 import sanitize from 'sanitize-filename';
-import { CACHE_CONTROL, S3_EXPIRE_HOURS, STORAGE_BACKEND, TEMP_FOLDER } from './config.js';
-import { getMimeTypeFromKey } from './filetype.js';
+import { CACHE_CONTROL, S3_EXPIRE_HOURS, STORAGE_BACKEND, TEMP_FOLDER } from '../config.js';
+import { getMimeTypeFromKey } from '../image/filetype.js';
 
 export abstract class Storage {
   abstract exists(key: string): Promise<boolean>;

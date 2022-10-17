@@ -2,20 +2,20 @@ import Router from '@koa/router';
 import koaBody from 'koa-body';
 import fs from 'node:fs';
 import path from 'node:path';
-import { apiOnly } from './apionly.js';
-import { autoOrient } from './autoorient.js';
-import { AUTO_ORIENT_ORIGINAL } from './config.js';
-import { getFileFormat } from './filetype.js';
-import { log } from './log.js';
+import { AUTO_ORIENT_ORIGINAL } from '../config.js';
+import { autoOrient } from '../image/autoorient.js';
+import { getFileFormat } from '../image/filetype.js';
+import { createResizedImages, resizedKeys } from '../image/resizing';
+import { rotateImages } from '../image/rotate.js';
+import { log } from '../log.js';
 import {
   promDeletedImagesCounter,
   promPublishedImagesCounter,
   promRotatedImagesCounter,
   promUploadedImagesCounter
-} from './prometheus.js';
-import { createResizedImages, resizedKeys } from './resizing.js';
-import { rotateImages } from './rotate.js';
-import { activeStorage, incomingStorage, tempStorage } from './storage.js';
+} from '../metrics/prometheus.js';
+import { activeStorage, incomingStorage, tempStorage } from '../storage/storage.js';
+import { apiOnly } from './apionly.js';
 import {
   generateUniqueKeyPrefix,
   isFileParameterValid,

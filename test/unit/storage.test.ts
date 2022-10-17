@@ -1,6 +1,6 @@
 import fs from 'node:fs';
-import { LocalStorage, tempStorage } from '../../src/storage.js';
-import { generateUniqueKeyPrefix } from '../../src/utils.js';
+import { generateUniqueKeyPrefix } from '../../src/koa/utils.js';
+import { LocalStorage, tempStorage } from '../../src/storage/storage.js';
 
 const key = `${generateUniqueKeyPrefix()}.png`;
 const newKey = `${generateUniqueKeyPrefix()}.png`;

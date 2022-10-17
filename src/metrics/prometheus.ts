@@ -1,6 +1,6 @@
 import type Koa from 'koa';
 import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from 'prom-client';
-import { DISABLE_PROMETHEUS_METRICS, SERVICE_NAME } from './config.js';
+import { DISABLE_PROMETHEUS_METRICS, SERVICE_NAME } from '../config.js';
 
 register.setDefaultLabels({ service: SERVICE_NAME });
 

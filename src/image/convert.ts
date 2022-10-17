@@ -1,6 +1,6 @@
 import { sync as commandExists } from 'command-exists';
 import spawn from 'cross-spawn';
-import { log } from './log.js';
+import { log } from '../log.js';
 
 const useImageMagick7 = commandExists('magick');
 

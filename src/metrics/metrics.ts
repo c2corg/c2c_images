@@ -1,6 +1,6 @@
 import http from 'http';
 import { register } from 'prom-client';
-import { METRICS_PATH } from './config.js';
+import { METRICS_PATH } from '../config.js';
 
 const server = http.createServer();
 server.on('request', async (request, response) => {

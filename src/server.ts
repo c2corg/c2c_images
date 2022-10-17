@@ -1,8 +1,8 @@
-import { koa } from './app.js';
 import { DISABLE_PROMETHEUS_METRICS, METRICS_PATH, METRICS_PORT, SERVICE_PORT } from './config.js';
-import { imageMagickVersion, rsvgConvertVersion } from './convert.js';
+import { imageMagickVersion, rsvgConvertVersion } from './image/convert.js';
+import { koa } from './koa/app.js';
 import { log } from './log.js';
-import { metricsServer } from './metrics.js';
+import { metricsServer } from './metrics/metrics.js';
 
 // check required tools exist
 log.info('Using rsvg-convert =>', rsvgConvertVersion());

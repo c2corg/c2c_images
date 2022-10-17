@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { ResizeConfig, RESIZING_CONFIG } from './config.js';
+import { ResizeConfig, RESIZING_CONFIG } from '../config.js';
+import { log } from '../log.js';
 import { rasterizeSvg, transform } from './convert.js';
-import { log } from './log.js';
 
 const resizedKey = (key: string, suffix: string) => {
   const { ext, name } = path.parse(key);

@@ -6,7 +6,7 @@
 import aws from 'aws-sdk';
 import { S3_EXPIRE_HOURS, STORAGE_BACKEND } from '../config.js';
 import { log } from '../log.js';
-import { getS3Params } from '../storage.js';
+import { getS3Params } from '../storage/storage.js';
 
 const INCOMING_BUCKET = process.env['INCOMING_BUCKET'];
 if (STORAGE_BACKEND !== 's3' || !INCOMING_BUCKET) {

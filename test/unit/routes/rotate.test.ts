@@ -1,9 +1,9 @@
 import path from 'node:path';
 import request from 'supertest';
-import { koa } from '../../../src/app.js';
-import { getFileSize } from '../../../src/filesize.js';
-import { activeStorage, tempStorage } from '../../../src/storage';
-import { generateUniqueKeyPrefix, isKeyParameterValid } from '../../../src/utils.js';
+import { getFileSize } from '../../../src/image/filesize.js';
+import { koa } from '../../../src/koa/app.js';
+import { generateUniqueKeyPrefix, isKeyParameterValid } from '../../../src/koa/utils.js';
+import { activeStorage, tempStorage } from '../../../src/storage/storage';
 
 describe('POST /rotate', () => {
   test('requires api secret', async () => {

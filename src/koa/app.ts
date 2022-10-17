@@ -1,7 +1,7 @@
 import cors from '@koa/cors';
 import Koa from 'koa';
-import { log } from './log.js';
-import { promErrorsCounter, promHttpReporter } from './prometheus.js';
+import { log } from '../log.js';
+import { promErrorsCounter, promHttpReporter } from '../metrics/prometheus.js';
 import { router } from './routes.js';
 
 const koa = new Koa();

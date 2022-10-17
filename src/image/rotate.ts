@@ -1,7 +1,7 @@
+import { log } from '../log';
+import { activeStorage, tempStorage } from '../storage/storage';
 import { transform } from './convert';
-import { log } from './log';
 import { createResizedImages, resizedKeys } from './resizing.js';
-import { activeStorage, tempStorage } from './storage';
 
 export const rotateImages = async (originalKey: string, newKey: string, rotation: string): Promise<void> => {
   await activeStorage.copy(originalKey, tempStorage);
