@@ -25,9 +25,12 @@ export interface ResizeConfig {
 export const RESIZING_CONFIG: ResizeConfig[] = process.env['RESIZING_CONFIG']
   ? JSON.parse(process.env['RESIZING_CONFIG'])
   : [
-      { suffix: 'BI', convert: ['-resize', '1500x1500>', '-quality', '90'] },
-      { suffix: 'MI', convert: ['-resize', '400x400>', '-quality', '90'] },
-      { suffix: 'SI', convert: ['-resize', '200x200^', '-gravity', 'center', '-extent', '200x200', '-quality', '90'] }
+      { suffix: 'BI', convert: ['-thumbnail', '1500x1500>', '-quality', '90'] },
+      { suffix: 'MI', convert: ['-thumbnail', '400x400>', '-quality', '90'] },
+      {
+        suffix: 'SI',
+        convert: ['-thumbnail', '200x200^', '-gravity', 'center', '-extent', '200x200', '-quality', '90']
+      }
     ];
 export const AUTO_ORIENT_ORIGINAL = (process.env['AUTO_ORIENT_ORIGINAL'] || 0) === '1';
 export const CACHE_CONTROL = process.env['CACHE_CONTROL'] || 'public, max-age=3600';
