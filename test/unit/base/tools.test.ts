@@ -1,4 +1,9 @@
-import { imageMagickVersion, isAvifSupported, isWebpSupported, rsvgConvertVersion } from '../../src/image/convert.js';
+import {
+  imageMagickVersion,
+  isAvifSupported,
+  isWebpSupported,
+  rsvgConvertVersion
+} from '../../../src/image/convert.js';
 
 describe('Image tools', () => {
   test('check that librsvg is installed', () => {

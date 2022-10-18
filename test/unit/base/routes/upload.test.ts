@@ -1,7 +1,7 @@
 import request from 'supertest';
-import { resizedKeys } from '../../../src/image/resizing.js';
-import { koa } from '../../../src/koa/app.js';
-import { incomingStorage } from '../../../src/storage/storage.js';
+import { resizedKeys } from '../../../../src/image/resizing.js';
+import { koa } from '../../../../src/koa/app.js';
+import { incomingStorage } from '../../../../src/storage/storage.js';
 
 describe('OPTIONS /upload', () => {
   test('returns CORS options', async () => {
