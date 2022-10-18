@@ -5,7 +5,7 @@ import path from 'node:path';
 import { AUTO_ORIENT_ORIGINAL } from '../config.js';
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
-import { createResizedImages, resizedKeys } from '../image/resizing';
+import { createResizedImages, resizedKeys } from '../image/resizing.js';
 import { rotateImages } from '../image/rotate.js';
 import { log } from '../log.js';
 import {
