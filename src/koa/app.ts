@@ -1,10 +1,21 @@
 import cors from '@koa/cors';
-import Koa from 'koa';
+import Koa, { Context } from 'koa';
 import { log } from '../log.js';
 import { promErrorsCounter, promHttpReporter } from '../metrics/prometheus.js';
 import { router } from './routes.js';
 
 const koa = new Koa();
+
+// handle gracefull shutdown: reject any new connection attempt
+koa.use(async (ctx: Context, next: () => Promise<unknown>): Promise<void> => {
+  if (ctx['shuttingDown']) {
+    ctx.status = 503;
+    ctx.set('Connection', 'close');
+    ctx.body = 'Server is shutting down';
+  } else {
+    await next();
+  }
+});
 
 koa.use(
   cors({
