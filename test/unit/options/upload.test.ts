@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { isAvifSupported, isWebpSupported } from '../../../src/image/convert.js';
 import { thumbnailKeys } from '../../../src/image/thumbnails.js';
 import { koa } from '../../../src/koa/app.js';
 import { incomingStorage } from '../../../src/storage/storage.js';
@@ -9,7 +10,8 @@ describe('Webp and Avif enabled', () => {
     expect(response.status).toBe(200);
     const { filename: key } = JSON.parse(response.text);
     expect(await incomingStorage.exists(key)).toBe(true);
-    expect(thumbnailKeys(key).length).toBe(9); // 3 x jpg 3 x webp 3 x avif
+    // not all versions will support webp and avif, take that into account
+    expect(thumbnailKeys(key).length).toBe(3 + +isWebpSupported * 3 + +isAvifSupported * 3);
     for (const resizedKey of thumbnailKeys(key)) {
       expect(await incomingStorage.exists(resizedKey)).toBe(true);
     }
