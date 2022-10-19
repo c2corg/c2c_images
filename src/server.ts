@@ -7,8 +7,8 @@ import { metricsServer } from './metrics/metrics.js';
 // check required tools exist
 log.info('Using rsvg-convert =>', rsvgConvertVersion());
 log.info('Using imagemagick =>', imageMagickVersion());
-log.info(`Webp write ${isWebpSupported && 'un'}supported`);
-log.info(`Avif write ${isAvifSupported && 'un'}supported`);
+log.info(`Webp write is ${isWebpSupported ? '' : 'un'}supported`);
+log.info(`Avif write is ${isAvifSupported ? '' : 'un'}supported`);
 
 // Listen for REST request
 koa.listen(SERVICE_PORT);
