@@ -1,7 +1,10 @@
+// include all tests and compute coverage
+import allConfig from './jest.config.all.mjs';
+
 export default {
-  projects: [
-    'test/config/jest.config.base.ci.mjs',
-    'test/config/jest.config.options.ci.mjs',
-    'test/config/jest.config.s3.ci.mjs'
-  ]
+  ...allConfig,
+  reporters: ['default', ['jest-junit', { outputName: 'reports/junit/js-results.xml' }]],
+  coverageDirectory: 'reports/coverage',
+  collectCoverage: true,
+  collectCoverageFrom: ['src/**/*.ts']
 };

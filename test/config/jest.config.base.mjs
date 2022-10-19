@@ -1,5 +1,6 @@
 export default {
-  roots: ['<rootDir>/../unit/base'],
+  rootDir: '../../',
+  roots: ['<rootDir>/test/unit/base'],
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
@@ -16,5 +17,5 @@ export default {
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
-  setupFiles: ['<rootDir>/../environment/env-vars.js']
+  setupFiles: ['<rootDir>/test/environment/env-vars.js']
 };
