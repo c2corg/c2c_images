@@ -27,7 +27,11 @@ export const getMimeTypeFromKey = (key: string): string => {
       return 'image/png';
     case '.gif':
       return 'image/gif';
+    case '.avif':
+      return 'image/avif';
+    case '.webp':
+      return 'image/webp';
     default:
-      throw new Error(`Unsupported image format ${key}.`);
+      throw new Error(`Unsupported output image format ${key}.`);
   }
 };

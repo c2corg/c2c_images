@@ -5,8 +5,8 @@ import path from 'node:path';
 import { AUTO_ORIENT_ORIGINAL } from '../config.js';
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
-import { createResizedImages, resizedKeys } from '../image/resizing.js';
 import { rotateImages } from '../image/rotate.js';
+import { createThumbnails, thumbnailKeys } from '../image/thumbnails.js';
 import { log } from '../log.js';
 import {
   promDeletedImagesCounter,
@@ -60,14 +60,10 @@ router.post('/upload', koaBody({ multipart: true }), async ctx => {
   }
 
   // create resized images
-  createResizedImages(tempStorage.path(originalKey));
+  createThumbnails(tempStorage.path(originalKey));
 
   log.debug(`${keyPrefix} - uploading original file`);
-  await tempStorage.move(originalKey, incomingStorage);
-
-  for (const key of resizedKeys(originalKey)) {
-    await tempStorage.move(key, incomingStorage);
-  }
+  await Promise.all([originalKey, ...thumbnailKeys(originalKey)].map(key => tempStorage.move(key, incomingStorage)));
 
   log.debug(`${keyPrefix} - returning response`);
 
@@ -97,11 +93,13 @@ router.post('/publish', koaBody({ multipart: true }), apiOnly, async ctx => {
   }
 
   if (!published) {
-    for (const resizedKey of resizedKeys(key)) {
-      if (await incomingStorage.exists(resizedKey)) {
-        await incomingStorage.move(resizedKey, activeStorage);
-      }
-    }
+    await Promise.all(
+      thumbnailKeys(key).map(async resizedKey => {
+        if (await incomingStorage.exists(resizedKey)) {
+          return incomingStorage.move(resizedKey, activeStorage);
+        }
+      })
+    );
 
     await incomingStorage.move(key, activeStorage);
 
@@ -121,20 +119,17 @@ router.post('/delete', koaBody({ multipart: true }), apiOnly, async ctx => {
     return;
   }
 
-  for (const key of keys) {
-    try {
-      await activeStorage.delete(key);
-    } catch {
-      log.error(`Deleting ${key} failed`);
-    }
-    for (const resizedKey of resizedKeys(key)) {
-      try {
-        await activeStorage.delete(resizedKey);
-      } catch {
-        log.error(`Deleting ${resizedKey} failed`);
-      }
-    }
+  const allPublished = await Promise.all(keys.map(key => activeStorage.exists(key)));
+  if (!allPublished) {
+    ctx.throw(404, 'Not found');
+    return;
   }
+
+  await Promise.all(
+    keys
+      .flatMap(key => [key, ...thumbnailKeys(key)])
+      .map(key => activeStorage.delete(key).catch(() => log.error(`Deleting ${key} failed`)))
+  );
 
   promDeletedImagesCounter.inc(1);
   ctx.body = { success: true };

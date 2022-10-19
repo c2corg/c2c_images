@@ -1,7 +1,7 @@
 import request from 'supertest';
-import { resizedKeys } from '../../../src/image/resizing.js';
-import { koa } from '../../../src/koa/app.js';
-import { incomingStorage } from '../../../src/storage/storage.js';
+import { thumbnailKeys } from '../../../../src/image/thumbnails.js';
+import { koa } from '../../../../src/koa/app.js';
+import { incomingStorage } from '../../../../src/storage/storage.js';
 
 describe('OPTIONS /upload', () => {
   test('returns CORS options', async () => {
@@ -50,7 +50,8 @@ describe('POST /upload', () => {
     expect(response.status).toBe(200);
     const { filename: key } = JSON.parse(response.text);
     expect(await incomingStorage.exists(key)).toBe(true);
-    for (const resizedKey of resizedKeys(key)) {
+    expect(thumbnailKeys(key).length).toBe(3); // no webp or avif
+    for (const resizedKey of thumbnailKeys(key)) {
       expect(await incomingStorage.exists(resizedKey)).toBe(true);
     }
   });
@@ -60,7 +61,8 @@ describe('POST /upload', () => {
     expect(response.status).toBe(200);
     const { filename: key } = JSON.parse(response.text);
     expect(await incomingStorage.exists(key)).toBe(true);
-    for (const resizedKey of resizedKeys(key)) {
+    expect(thumbnailKeys(key).length).toBe(3);
+    for (const resizedKey of thumbnailKeys(key)) {
       expect(await incomingStorage.exists(resizedKey)).toBe(true);
     }
   });

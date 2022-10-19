@@ -12,7 +12,7 @@ export const isFileParameterValid = (file: File | File[] | undefined): file is F
 export const isKeyParameterValid = (input?: unknown): input is string =>
   !!input && !Array.isArray(input) && typeof input === 'string' && keyRegex.test(input);
 
-export const isKeysParameterValid = (inputs?: unknown): inputs is string | string[] =>
+export const isKeysParameterValid = (inputs?: unknown): inputs is string[] =>
   !!inputs && Array.isArray(inputs) && inputs.every(input => typeof input === 'string' && keyRegex.test(input));
 
 export const isRotationParameterValid = (input?: unknown): input is string =>

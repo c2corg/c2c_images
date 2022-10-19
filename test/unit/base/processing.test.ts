@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { RESIZING_CONFIG } from '../../src/config.js';
-import { rasterizeSvg } from '../../src/image/convert.js';
-import { getFileFormat } from '../../src/image/filetype.js';
-import { createResizedImage } from '../../src/image/resizing.js';
-import { tempStorage } from '../../src/storage/storage.js';
+import { RESIZING_CONFIG } from '../../../src/config.js';
+import { rasterizeSvg } from '../../../src/image/convert.js';
+import { getFileFormat } from '../../../src/image/filetype.js';
+import { createThumbnail } from '../../../src/image/thumbnails.js';
+import { tempStorage } from '../../../src/storage/storage.js';
 
 const RASTER_IMAGES = ['violin.jpg', 'piano.png', 'music.gif'];
 
@@ -18,7 +18,7 @@ describe('Processing', () => {
     for (const key of RASTER_IMAGES) {
       await copytestImageToTempStorage(key);
       for (const config of RESIZING_CONFIG) {
-        createResizedImage(tempStorage.path(), key, config);
+        createThumbnail(tempStorage.path(), key, config);
         expect(fs.existsSync(tempStorage.path(key))).toBe(true);
       }
     }
