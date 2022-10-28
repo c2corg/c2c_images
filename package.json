@@ -1,6 +1,6 @@
 {
   "name": "c2c_images",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "type": "module",
   "scripts": {
     "start": "node ./dist/server.js",
