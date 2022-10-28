@@ -39,7 +39,9 @@ Configuration should be set by environment variables:
 - `local`: requires `INCOMING_FOLDER` and `ACTIVE_FOLDER`, should be used
   for tests and development.
 
-`TEMP_FOLDER`: (required) Local folder to store images temporarily.
+`TEMP_FOLDER`: Local folder to store images temporarily. Default is
+`<OSTMPDIR>/images/temp` where `<OSTMPDIR>` is the operating system's
+default directory for temporary files.
 
 `INCOMING_FOLDER`: Local folder for incoming files.
 
@@ -86,7 +88,6 @@ Here is an example configuration with S3 backend on exoscale:
 ```bash
 STORAGE_BACKEND: s3
 
-TEMP_FOLDER: /srv/images/temp
 INCOMING_FOLDER:
 ACTIVE_FOLDER:
 

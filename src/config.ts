@@ -1,3 +1,5 @@
+import os from 'node:os';
+
 export const SERVICE_NAME = 'c2c_images';
 
 export const SERVICE_PORT = process.env['SERVICE_PORT'] || 8080;
@@ -10,11 +12,8 @@ export const API_SECRET_KEY = process.env['API_SECRET_KEY'];
 if (!process.env['STORAGE_BACKEND']) {
   throw new Error('STORAGE_BACKEND missing');
 }
-if (!process.env['TEMP_FOLDER']) {
-  throw new Error('TEMP_FOLDER missing');
-}
 export const STORAGE_BACKEND = process.env['STORAGE_BACKEND'];
-export const TEMP_FOLDER = process.env['TEMP_FOLDER'];
+export const TEMP_FOLDER = process.env['TEMP_FOLDER'] || `${os.tmpdir()}/images/temp`;
 
 export interface ResizeConfig {
   suffix: string;
