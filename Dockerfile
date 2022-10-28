@@ -32,7 +32,7 @@ RUN apk add --no-cache \
 COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
 WORKDIR /usr/bin/app
 COPY --from=build --chown=node:node /usr/package.json ./
-COPY --from=build --chown=node:node /usr/node_modules ./
+COPY --from=build --chown=node:node /usr/node_modules ./node_modules
 COPY --from=build --chown=node:node /usr/dist ./
 ENV NODE_ENV production
 ENV DEBUG "c2c_images:*"
