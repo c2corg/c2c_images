@@ -1,4 +1,5 @@
-import { generateUniqueKeyPrefix, keyRegex } from '../../../src/koa/utils.js';
+import { generateUniqueKeyPrefix } from '../../../src/koa/utils.js';
+import { keyRegex } from '../../../src/koa/validation.js';
 
 describe('Key validation', () => {
   test('regex', () => {
