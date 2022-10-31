@@ -12,7 +12,7 @@ describe('POST /delete', () => {
 
   test('requires filenames', async () => {
     const response = await request(koa.callback()).post('/delete').send({ secret: 'my secret' });
-    expect(response.text).toBe('Bad parameter "filenames"');
+    expect(response.text).toBe('Bad parameter filenames: Invalid input.');
     expect(response.status).toBe(400);
   });
 

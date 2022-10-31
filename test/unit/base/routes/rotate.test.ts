@@ -2,7 +2,8 @@ import path from 'node:path';
 import request from 'supertest';
 import { getFileSize } from '../../../../src/image/filesize.js';
 import { koa } from '../../../../src/koa/app.js';
-import { generateUniqueKeyPrefix, isKeyParameterValid } from '../../../../src/koa/utils.js';
+import { generateUniqueKeyPrefix } from '../../../../src/koa/utils.js';
+import { keyRegex } from '../../../../src/koa/validation.js';
 import { activeStorage, tempStorage } from '../../../../src/storage/storage.js';
 
 describe('POST /rotate', () => {
@@ -14,7 +15,7 @@ describe('POST /rotate', () => {
 
   test('expects a key', async () => {
     const response = await request(koa.callback()).post('/rotate').send({ secret: 'my secret' });
-    expect(response.text).toBe('Bad parameter "filename".');
+    expect(response.text).toBe('Bad parameter filename: Required.');
     expect(response.status).toBe(400);
   });
 
@@ -22,7 +23,9 @@ describe('POST /rotate', () => {
     const response = await request(koa.callback())
       .post('/rotate')
       .send({ secret: 'my secret', filename: '1234567890_1234567890.jpg', rotation: '45' });
-    expect(response.text).toBe('Bad parameter "rotation" must be -90, 90 or 180');
+    expect(response.text).toBe(
+      "Bad parameter rotation: Invalid enum value. Expected '-90' | '90' | '180', received '45'."
+    );
     expect(response.status).toBe(400);
   });
 
@@ -45,7 +48,7 @@ describe('POST /rotate', () => {
     const { success, filename } = JSON.parse(response.text);
     const { name: newKey, ext: newExt } = path.parse(filename);
     expect(success).toBe(true);
-    expect(isKeyParameterValid(filename)).toBe(true);
+    expect(keyRegex.test(filename)).toBe(true);
     expect(newKey).not.toBe(key);
     expect(newExt).toBe('.png');
     expect(response.status).toBe(200);

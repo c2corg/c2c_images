@@ -30,7 +30,7 @@ describe('POST /upload', () => {
       .set('Origin', 'http://test.com')
       .expect('Access-Control-Allow-Origin', 'http://test.com');
     expect(response.status).toBe(400);
-    expect(response.text).toBe('Bad request. Exactly one file has to be provided.');
+    expect(response.text).toBe('Missing parameters. Expected values are { file }');
   });
 
   test('refuses unsupported formats', async () => {

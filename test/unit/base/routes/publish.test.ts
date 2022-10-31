@@ -6,8 +6,8 @@ import { activeStorage, incomingStorage } from '../../../../src/storage/storage.
 describe('POST /publish', () => {
   test('requires api secret', async () => {
     const response = await request(koa.callback()).post('/publish');
-    expect(response.text).toBe('Bad secret key.');
-    expect(response.status).toBe(403);
+    expect(response.text).toBe('Missing secret key.');
+    expect(response.status).toBe(401);
   });
 
   test('requires valid api secret', async () => {
@@ -16,18 +16,18 @@ describe('POST /publish', () => {
     expect(response.status).toBe(403);
   });
 
-  test('missing file', async () => {
+  test('missing filename', async () => {
     const response = await request(koa.callback()).post('/publish').send({ secret: 'my secret' });
-    expect(response.text).toBe('Bad parameter "filename".');
+    expect(response.text).toBe('Bad parameter filename: Required.');
     expect(response.status).toBe(400);
   });
 
-  test('bad file', async () => {
+  test('unknown file', async () => {
     const response = await request(koa.callback())
       .post('/publish')
       .send({ secret: 'my secret', filename: '1234567890_1234567890.jpg' });
     expect(response.text).toBe('Unknown image.');
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(404);
   });
 
   test('publish image in incoming', async () => {

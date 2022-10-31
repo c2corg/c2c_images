@@ -16,15 +16,11 @@ import {
 } from '../metrics/prometheus.js';
 import { activeStorage, incomingStorage, tempStorage } from '../storage/storage.js';
 import { apiOnly } from './apionly.js';
-import {
-  generateUniqueKeyPrefix,
-  isFileParameterValid,
-  isKeyParameterValid,
-  isKeysParameterValid,
-  isRotationParameterValid
-} from './utils.js';
+import { generateUniqueKeyPrefix } from './utils.js';
+import { DeleteBody, PublishBody, RotateBody, UploadFiles, validate } from './validation.js';
 
 export const router = new Router();
+const bodyParser = koaBody({ multipart: true });
 
 // Health endpoint
 router.get('/ping', async ctx => {
@@ -33,14 +29,9 @@ router.get('/ping', async ctx => {
 
 // Uploaded images are verified, resized images generated and stored in the incoming storage
 // This endpoint is called directly by the UI.
-router.post('/upload', koaBody({ multipart: true }), async ctx => {
+router.post('/upload', bodyParser, async ctx => {
   const keyPrefix = generateUniqueKeyPrefix();
-  const file = ctx.request.files?.['file'];
-
-  if (!isFileParameterValid(file)) {
-    ctx.throw(400, `Bad request. Exactly one file has to be provided.`);
-    return;
-  }
+  const { file } = validate(ctx, UploadFiles, 'files');
 
   let format: string;
   try {
@@ -76,21 +67,14 @@ router.post('/upload', koaBody({ multipart: true }), async ctx => {
 
 // Publish images from incoming storage to active storage
 // Only called by api service
-router.post('/publish', koaBody({ multipart: true }), apiOnly, async ctx => {
-  // call to apiOnly ensures body is an object
-  const { filename: key } = ctx.request.body;
-
-  if (!isKeyParameterValid(key)) {
-    ctx.throw(400, 'Bad parameter "filename".');
-    return;
-  }
+router.post('/publish', bodyParser, apiOnly, async ctx => {
+  const { filename: key } = validate(ctx, PublishBody);
 
   const published = await activeStorage.exists(key);
   const incoming = await incomingStorage.exists(key);
 
   if (!published && !incoming) {
-    ctx.throw(400, 'Unknown image.');
-    return;
+    ctx.throw(404, 'Unknown image.');
   }
 
   if (!published) {
@@ -112,19 +96,12 @@ router.post('/publish', koaBody({ multipart: true }), apiOnly, async ctx => {
 
 // Delete a file from active storage
 // Only called by api service
-router.post('/delete', koaBody({ multipart: true }), apiOnly, async ctx => {
-  // call to apiOnly ensures body is an object
-  let { filenames: keys } = ctx.request.body;
-  keys = Array.isArray(keys) ? keys : [keys];
-  if (!isKeysParameterValid(keys)) {
-    ctx.throw(400, 'Bad parameter "filenames"');
-    return;
-  }
+router.post('/delete', bodyParser, apiOnly, async ctx => {
+  const { filenames: keys } = validate(ctx, DeleteBody);
 
   const allPublished = await Promise.all(keys.map(key => activeStorage.exists(key)));
   if (!allPublished) {
-    ctx.throw(404, 'Not found');
-    return;
+    ctx.throw(404);
   }
 
   await Promise.all(
@@ -137,25 +114,13 @@ router.post('/delete', koaBody({ multipart: true }), apiOnly, async ctx => {
   ctx.body = { success: true };
 });
 
-router.post('/rotate', koaBody({ multipart: true }), apiOnly, async ctx => {
-  // call to apiOnly ensures body is an object
-  const { rotation = '90', filename: key } = ctx.request.body;
-
-  if (!isKeyParameterValid(key)) {
-    ctx.throw(400, 'Bad parameter "filename".');
-    return;
-  }
-
-  if (!isRotationParameterValid(rotation)) {
-    ctx.throw(400, 'Bad parameter "rotation" must be -90, 90 or 180');
-    return;
-  }
+router.post('/rotate', bodyParser, apiOnly, async ctx => {
+  const { rotation = '90', filename: key } = validate(ctx, RotateBody);
 
   const published = await activeStorage.exists(key);
 
   if (!published) {
     ctx.throw(404, 'Not found');
-    return;
   }
 
   const newKey = `${generateUniqueKeyPrefix()}${path.parse(key).ext}`;

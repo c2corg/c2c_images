@@ -1,12 +1,15 @@
 import type Koa from 'koa';
-import { API_SECRET_KEY } from '../config.js';
+import { ApiSecret } from './validation.js';
 
 /**
- * Ensures that the requests comes with a valid API secret
+ * Ensures that the requests come with a valid API secret
  */
 export const apiOnly: Koa.Middleware = async (ctx, next) => {
-  const secret = typeof ctx.request.body === 'object' && ctx.request.body?.secret;
-  if (!secret || secret !== API_SECRET_KEY) {
+  const result = ApiSecret.safeParse(ctx.request.body);
+  if (!result.success) {
+    if (result.error.issues[0]?.message === 'Required') {
+      ctx.throw(401, 'Missing secret key.');
+    }
     ctx.throw(403, 'Bad secret key.');
   }
   await next();
