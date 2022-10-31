@@ -16,6 +16,12 @@ describe('POST /publish', () => {
     expect(response.status).toBe(403);
   });
 
+  test('missing file', async () => {
+    const response = await request(koa.callback()).post('/publish').send({ secret: 'my secret' });
+    expect(response.text).toBe('Bad parameter "filename".');
+    expect(response.status).toBe(400);
+  });
+
   test('bad file', async () => {
     const response = await request(koa.callback())
       .post('/publish')

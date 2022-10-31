@@ -6,7 +6,7 @@ import { koa } from './koa/app.js';
 import { log } from './log.js';
 import { metricsServer } from './metrics/metrics.js';
 
-async function closeServer(server: Server): Promise<void> {
+const closeServer = async (server: Server): Promise<void> => {
   const checkPendingRequests = (callback: ErrorCallback<Error | undefined>): void => {
     server.getConnections((err: Error | null, pendingRequests: number) => {
       if (err) {
@@ -28,23 +28,21 @@ async function closeServer(server: Server): Promise<void> {
       }
     });
   });
-}
+};
 
-async function closeGracefully(signal: string, ...servers: Server[]): Promise<void> {
+const closeGracefully = async (signal: string, ...servers: Server[]): Promise<void> => {
   log.info(`Received signal to terminate: ${signal}`);
 
   koa.context['shuttingDown'] = true;
 
-  for (const s of servers.map(closeServer)) {
-    try {
-      await s;
-    } catch (e) {
-      log.error('Error in graceful shutdown ', e);
-    }
+  try {
+    await Promise.all(servers.map(closeServer));
+  } catch (error) {
+    log.error('Error in graceful shutdown ', error);
   }
 
   process.kill(process.pid, signal);
-}
+};
 
 // check required tools exist
 log.info('Using rsvg-convert =>', rsvgConvertVersion());
