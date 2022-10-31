@@ -1,5 +1,5 @@
 import Router from '@koa/router';
-import koaBody from 'koa-body';
+import { koaBody } from 'koa-body';
 import fs from 'node:fs';
 import path from 'node:path';
 import { AUTO_ORIENT_ORIGINAL } from '../config.js';
@@ -77,6 +77,7 @@ router.post('/upload', koaBody({ multipart: true }), async ctx => {
 // Publish images from incoming storage to active storage
 // Only called by api service
 router.post('/publish', koaBody({ multipart: true }), apiOnly, async ctx => {
+  // call to apiOnly ensures body is an object
   const { filename: key } = ctx.request.body;
 
   if (!isKeyParameterValid(key)) {
@@ -112,6 +113,7 @@ router.post('/publish', koaBody({ multipart: true }), apiOnly, async ctx => {
 // Delete a file from active storage
 // Only called by api service
 router.post('/delete', koaBody({ multipart: true }), apiOnly, async ctx => {
+  // call to apiOnly ensures body is an object
   let { filenames: keys } = ctx.request.body;
   keys = Array.isArray(keys) ? keys : [keys];
   if (!isKeysParameterValid(keys)) {
@@ -136,6 +138,7 @@ router.post('/delete', koaBody({ multipart: true }), apiOnly, async ctx => {
 });
 
 router.post('/rotate', koaBody({ multipart: true }), apiOnly, async ctx => {
+  // call to apiOnly ensures body is an object
   const { rotation = '90', filename: key } = ctx.request.body;
 
   if (!isKeyParameterValid(key)) {
