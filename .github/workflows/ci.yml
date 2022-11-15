@@ -65,9 +65,7 @@ jobs:
         with:
           images: c2corg/c2c_images
           tags: |
-            # tag event
             type=ref,event=tag,priority=610
-            # branch event
             type=ref,event=branch,priority=600
       - name: Publish the docker image
         uses: docker/build-push-action@v3
@@ -76,8 +74,7 @@ jobs:
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
-          build-args: |
-            VERSION=${{ fromJSON(steps.docker_meta.outputs.json).labels['org.opencontainers.image.version'] }}
+          build-args: VERSION=${{ fromJSON(steps.docker_meta.outputs.json).labels['org.opencontainers.image.version'] }}
 
   create-release:
     needs: test

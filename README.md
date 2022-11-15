@@ -83,6 +83,9 @@ to this format.
 `CACHE_CONTROL`: Cache-Control value to be set to all the images uploaded
 to s3. Default is `public, max-age=3600`.
 
+`ALLOWED_ORIGINS`: Comma separated list of allowed origins for CORS requests.
+This is currently only for the `/upload` endpoint. Default is `*`.
+
 Here is an example configuration with S3 backend on exoscale:
 
 ```bash

@@ -37,3 +37,5 @@ export const GENERATE_AVIF = (process.env['GENERATE_AVIF'] || '0') === '1';
 export const GENERATE_WEBP = (process.env['GENERATE_WEBP'] || '0') === '1';
 
 export const S3_EXPIRE_HOURS = 2;
+
+export const ALLOWED_ORIGINS = (process.env['ALLOWED_ORIGINS'] ?? '*').split(',');
