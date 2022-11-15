@@ -7,3 +7,4 @@ process.env.INCOMING_FOLDER = `${os.tmpdir()}/images/incoming`;
 process.env.ACTIVE_FOLDER = `${os.tmpdir()}/images/active`;
 process.env.API_SECRET_KEY = 'my secret';
 process.env.AUTO_ORIENT_ORIGINAL = '1';
+process.env.ALLOWED_ORIGINS = 'http://test.com';
