@@ -1,5 +1,6 @@
 import cors from '@koa/cors';
 import Koa, { Context } from 'koa';
+import { ALLOWED_ORIGINS } from '../config.js';
 import { log } from '../log.js';
 import { promErrorsCounter, promHttpReporter } from '../metrics/prometheus.js';
 import { router } from './routes.js';
@@ -21,7 +22,14 @@ koa.use(
   cors({
     allowMethods: 'GET,POST',
     allowHeaders: 'Origin, Content-Type, Accept, Authorization',
-    maxAge: '1728000'
+    maxAge: '1728000',
+    origin: ctx => {
+      const requestOrigin = ctx.get('Origin');
+      if (ALLOWED_ORIGINS.includes(requestOrigin)) {
+        return requestOrigin;
+      }
+      return '';
+    }
   })
 );
 
