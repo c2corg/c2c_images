@@ -8,6 +8,8 @@ RUN npm run build
 RUN npm prune --omit "dev"
 
 FROM node:lts-alpine
+ARG VERSION
+ENV npm_package_version=${VERSION}
 RUN apk add --no-cache \
     librsvg \
     imagemagick

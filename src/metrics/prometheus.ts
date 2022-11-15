@@ -70,5 +70,5 @@ new Gauge({
   help: 'Service info',
   labelNames: ['version', 'env']
 })
-  .labels(process.env['VERSION'] ?? 'dev', process.env['NODE_ENV'] ?? '')
+  .labels(process.env['npm_package_version'] ?? 'dev', process.env['NODE_ENV'] ?? 'dev')
   .set(1);

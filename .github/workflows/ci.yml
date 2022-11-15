@@ -50,10 +50,20 @@ jobs:
   publish:
     # only publish if tests passed
     needs: test
-    # secrets are not available for PR from forks, and dependabot PRs, we don't want to build them
-    if: ${{ github.event_name != 'pull_request' && github.actor != 'dependabot[bot]' }}
+    # only publish images for tags and main branch
+    if: "contains(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'"
     runs-on: ubuntu-latest
     steps:
+      - name: Retrieve VERSION from package.json
+        id: package_json_version
+        run: |
+          content=`cat package.json`
+          # the following lines are only required for multi line json
+          content="${content//'%'/'%25'}"
+          content="${content//$'\n'/'%0A'}"
+          content="${content//$'\r'/'%0D'}"
+          # end of optional handling for multi line json
+          echo "::set-output name=packageJson::$content"
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
@@ -68,9 +78,10 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           load: false
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
+          build-args: VERSION=${{ fromJson(steps.package_json_version.outputs.packageJson).version }}
 
   create-release:
     needs: test
