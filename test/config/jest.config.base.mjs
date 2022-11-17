@@ -10,7 +10,8 @@ export default {
         useESM: true,
         // workaround for OOM issue, but lowers type checking
         // see https://github.com/kulshekhar/ts-jest/issues/2015
-        isolatedModules: true
+        isolatedModules: true,
+        tsconfig: '<rootDir>/test/tsconfig.json'
       }
     ]
   },
