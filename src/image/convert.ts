@@ -13,15 +13,19 @@ export const transform = (originalFile: string, targetFile: string, options: str
   runSync(useImageMagick7 ? 'magick' : 'convert', [originalFile, ...options, targetFile]);
 };
 
-export const identify = (filename: string, pattern = '%m'): string => {
+// We don't use -format option because it creates decode delegate error
+// on ubuntu/debian. We rather parse the default output, which doesn't and has
+// all needed information.
+export const identify = (filename: string): { format: string; widthxheight: string } => {
   try {
-    const format = useImageMagick7
-      ? runSync('magick', ['identify', '-format', pattern, filename])
-      : runSync('identify', ['-format', pattern, filename]);
-    if (!format) {
+    const result = useImageMagick7 ? runSync('magick', ['identify', filename]) : runSync('identify', [filename]);
+    const [, format, widthxheight] = result.split(' ');
+
+    if (!format || !widthxheight) {
       throw new Error();
     }
-    return format;
+
+    return { format, widthxheight };
   } catch {
     throw new Error('Unrecognized image format.');
   }
