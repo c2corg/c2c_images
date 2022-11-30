@@ -2,7 +2,7 @@ import path from 'node:path';
 import { identify } from './convert.js';
 
 export const getFileFormat = (filename: string): string => {
-  const format = identify(filename);
+  const { format } = identify(filename);
 
   switch (format) {
     case 'JPEG':
