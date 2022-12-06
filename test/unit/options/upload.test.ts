@@ -17,3 +17,16 @@ describe('Webp and Avif enabled', () => {
     }
   }, 10000);
 });
+
+describe('OPTIONS /upload', () => {
+  test('returns CORS options with *', async () => {
+    const response = await request(koa.callback())
+      .options('/upload')
+      .set('Origin', 'http://test.com')
+      .set('Access-Control-Request-Method', 'POST')
+      .expect('Access-Control-Allow-Origin', '*')
+      .expect('Access-Control-Allow-Methods', 'GET,POST')
+      .expect('Access-Control-Allow-Headers', 'Origin,Content-Type,Accept,Authorization');
+    expect(response.status).toBe(204);
+  });
+});

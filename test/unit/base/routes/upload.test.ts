@@ -11,7 +11,7 @@ describe('OPTIONS /upload', () => {
       .set('Access-Control-Request-Method', 'POST')
       .expect('Access-Control-Allow-Origin', 'http://test.com')
       .expect('Access-Control-Allow-Methods', 'GET,POST')
-      .expect('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization');
+      .expect('Access-Control-Allow-Headers', 'Origin,Content-Type,Accept,Authorization');
     expect(response.status).toBe(204);
   });
 });

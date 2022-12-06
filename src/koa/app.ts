@@ -20,17 +20,19 @@ koa.use(async (ctx: Context, next: () => Promise<unknown>): Promise<void> => {
 
 koa.use(
   cors({
-    allowMethods: 'GET,POST',
-    allowHeaders: 'Origin, Content-Type, Accept, Authorization',
+    allowMethods: ['GET', 'POST'],
+    allowHeaders: ['Origin', 'Content-Type', 'Accept', 'Authorization'],
     maxAge: '1728000',
     origin: ctx => {
       if (ALLOWED_ORIGINS.includes('*')) {
         return '*';
       }
+
       const requestOrigin = ctx.get('Origin');
       if (ALLOWED_ORIGINS.includes(requestOrigin)) {
         return requestOrigin;
       }
+
       return '';
     }
   })
