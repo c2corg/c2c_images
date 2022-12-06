@@ -24,6 +24,9 @@ koa.use(
     allowHeaders: 'Origin, Content-Type, Accept, Authorization',
     maxAge: '1728000',
     origin: ctx => {
+      if (ALLOWED_ORIGINS.includes('*')) {
+        return '*';
+      }
       const requestOrigin = ctx.get('Origin');
       if (ALLOWED_ORIGINS.includes(requestOrigin)) {
         return requestOrigin;
