@@ -12,7 +12,7 @@ describe('Auto orient jpeg images', () => {
   test('POST /upload will auto orient image', async () => {
     const key = 'autoorient.jpg';
     await copytestImageToTempStorage(key);
-    autoOrient(tempStorage.path(key));
-    expect(getFileSize(tempStorage.path(key))).toBe('133x200');
+    await autoOrient(tempStorage.path(key));
+    expect(await getFileSize(tempStorage.path(key))).toBe('133x200');
   });
 });

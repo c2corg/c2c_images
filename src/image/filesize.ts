@@ -1,6 +1,6 @@
 import { identify } from '../exec/imagemagick.js';
 
-export const getFileSize = (filename: string): string => {
-  const { widthxheight } = identify(filename);
+export const getFileSize = async (filename: string): Promise<string> => {
+  const { widthxheight } = await identify(filename);
   return widthxheight;
 };

@@ -28,8 +28,8 @@ describe('Processing', () => {
     const svgKey = 'pipe_organ.svg';
     const destKey = 'pipe_organ.jpg';
     await copyTestImageToTempStorage(svgKey);
-    rasterizeSvg(tempStorage.path(svgKey), tempStorage.path(destKey));
+    await rasterizeSvg(tempStorage.path(svgKey), tempStorage.path(destKey));
     expect(fs.existsSync(tempStorage.path(destKey))).toBe(true);
-    expect(getFileFormat(tempStorage.path(destKey))).toBe('png');
+    expect(await getFileFormat(tempStorage.path(destKey))).toBe('png');
   });
 });

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import request from 'supertest';
 import { getFileSize } from '../../../../src/image/filesize.js';
+import { allThumbnailKeys, baseThumbnailKeys } from '../../../../src/image/thumbnails.js';
 import { koa } from '../../../../src/koa/app.js';
 import { generateUniqueKeyPrefix } from '../../../../src/koa/utils.js';
 import { keyRegex } from '../../../../src/koa/validation.js';
@@ -60,17 +61,22 @@ describe('POST /rotate', () => {
     expect(newKey).not.toBe(key);
     expect(newExt).toBe('.png');
     expect(response.status).toBe(200);
+
+    // initial image and all thumbnails have been deleted
     expect(await activeStorage.exists(`${key}.png`)).toBe(false);
-    expect(await activeStorage.exists(`${key}BI.png`)).toBe(false);
-    expect(await activeStorage.exists(`${newKey}.png`)).toBe(true);
-    expect(await activeStorage.exists(`${newKey}BI.png`)).toBe(true);
-    // even non existing thumbnails are now generated
-    expect(await activeStorage.exists(`${newKey}SI.png`)).toBe(true);
+    for (const fileKey of allThumbnailKeys(key)) {
+      expect(await activeStorage.exists(fileKey)).toBe(false);
+    }
+    // all thumbnails, even non initially existing ones are now generated
+    expect(await activeStorage.exists(filename)).toBe(true);
+    for (const fileKey of baseThumbnailKeys(filename)) {
+      expect(await activeStorage.exists(fileKey)).toBe(true);
+    }
 
     // check that the image has been actually rotated
     await activeStorage.move(`${newKey}.png`, tempStorage);
     await activeStorage.move(`${newKey}MI.png`, tempStorage);
-    expect(getFileSize(tempStorage.path(`${newKey}.png`))).toBe('551x1151');
-    expect(getFileSize(tempStorage.path(`${newKey}MI.png`))).toBe('191x400');
+    expect(await getFileSize(tempStorage.path(`${newKey}.png`))).toBe('551x1151');
+    expect(await getFileSize(tempStorage.path(`${newKey}MI.png`))).toBe('191x400');
   });
 });

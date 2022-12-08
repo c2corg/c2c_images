@@ -173,7 +173,7 @@ A new key will be returned, in order to avoid cache issues.
 Note that SVG files cannot be rotated.
 
 As for the upload endpoint, modern formats (if enabled) are generated
-asynchronously and my not be immediately available.
+asynchronously and may not be immediately available.
 
 ## Cleaning
 

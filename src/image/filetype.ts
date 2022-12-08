@@ -3,8 +3,8 @@ import { PREFER_IDENTIFY_OVER_FILE } from '../config.js';
 import { fileCmdExists, getMimeType } from '../exec/file.js';
 import { identify, isSvgReadSupported } from '../exec/imagemagick.js';
 
-const getFormatFromIdentify = (filename: string): string => {
-  const { format } = identify(filename);
+const getFormatFromIdentify = async (filename: string): Promise<string> => {
+  const { format } = await identify(filename);
 
   switch (format) {
     case 'JPEG':
@@ -24,8 +24,8 @@ const getFormatFromIdentify = (filename: string): string => {
   }
 };
 
-const getFormatFromFile = (filename: string): string => {
-  const mime = getMimeType(filename);
+const getFormatFromFile = async (filename: string): Promise<string> => {
+  const mime = await getMimeType(filename);
   switch (mime) {
     case 'image/jpeg':
       return 'jpg';
