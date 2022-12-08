@@ -124,6 +124,17 @@ Parameters:
 Publishes the image to the incoming bucket, along with its generated
 thumbnails.
 
+Supported file formats are:
+
+- jpeg
+- png
+- gif
+- svg
+
+Note that the server responds as soon as 'base' thumbnails are generated
+(jpeg or png), but that modern formats (if enabled) are generated
+asynchronously and may not be immediately available.
+
 ### publish
 
 `POST /publish`
@@ -158,6 +169,11 @@ Parameters:
 
 Rotates the image and its thumbnails in the active bucket.
 A new key will be returned, in order to avoid cache issues.
+
+Note that SVG files cannot be rotated.
+
+As for the upload endpoint, modern formats (if enabled) are generated
+asynchronously and my not be immediately available.
 
 ## Cleaning
 

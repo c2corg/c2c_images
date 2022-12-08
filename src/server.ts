@@ -1,7 +1,14 @@
 import { ErrorCallback, retry } from 'async';
 import type { Server } from 'node:http';
 import { DISABLE_PROMETHEUS_METRICS, METRICS_PATH, METRICS_PORT, SERVICE_PORT } from './config.js';
-import { imageMagickVersion, isAvifSupported, isWebpSupported, rsvgConvertVersion } from './image/convert.js';
+import { fileCmdExists } from './exec/file.js';
+import {
+  imageMagickVersion,
+  isAvifWriteSupported,
+  isSvgReadSupported,
+  isWebpWriteSupported
+} from './exec/imagemagick.js';
+import { rsvgConvertVersion } from './exec/librsvg.js';
 import { koa } from './koa/app.js';
 import { log } from './log.js';
 import { metricsServer } from './metrics/metrics.js';
@@ -12,9 +19,9 @@ const closeServer = async (server: Server): Promise<void> => {
       if (err) {
         callback(err);
       } else if (pendingRequests) {
-        callback(Error(`Number of pending requests: ${pendingRequests}`));
+        callback(new Error(`Number of pending requests: ${pendingRequests}`));
       } else {
-        callback(undefined);
+        callback();
       }
     });
   };
@@ -47,8 +54,10 @@ const closeGracefully = async (signal: string, ...servers: Server[]): Promise<vo
 // check required tools exist
 log.info('Using rsvg-convert =>', rsvgConvertVersion());
 log.info('Using imagemagick =>', imageMagickVersion());
-log.info(`Webp write is ${isWebpSupported ? '' : 'un'}supported`);
-log.info(`Avif write is ${isAvifSupported ? '' : 'un'}supported`);
+log.info(`Webp write is ${isWebpWriteSupported ? '' : 'un'}supported`);
+log.info(`Avif write is ${isAvifWriteSupported ? '' : 'un'}supported`);
+log.info(`Svg read is ${isSvgReadSupported ? '' : 'un'}supported`);
+log.info(`Using ${fileCmdExists ? 'file' : 'imagemagick'} to detect file formats`);
 
 // Listen for REST request
 const server = koa.listen(SERVICE_PORT);

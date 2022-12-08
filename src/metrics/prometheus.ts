@@ -1,5 +1,5 @@
 import type Koa from 'koa';
-import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from 'prom-client';
+import { collectDefaultMetrics, Counter, exponentialBuckets, Gauge, Histogram, register } from 'prom-client';
 import { DISABLE_PROMETHEUS_METRICS, SERVICE_NAME } from '../config.js';
 
 register.setDefaultLabels({ service: SERVICE_NAME });
@@ -62,6 +62,27 @@ export const promDeletedImagesCounter = new Counter({
 export const promRotatedImagesCounter = new Counter({
   name: 'rotated_images',
   help: 'Counter of images rotated in the active bucket'
+});
+
+// image generation times
+export const imageGenerationsHistogram = new Histogram({
+  name: 'thumbnail_generations_time',
+  help: 'Histogram of time taken to generate thumbnails',
+  labelNames: ['format', 'size'],
+  buckets: exponentialBuckets(1, 2, 7)
+});
+
+// image rotation times
+export const imageRotationsHistogram = new Histogram({
+  name: 'thumbnail_rotations_time',
+  help: 'Histogram of time taken to rotate an image',
+  buckets: exponentialBuckets(0.5, 2, 7)
+});
+
+// jpeg auto orient
+export const imageAutoorientHistogram = new Histogram({
+  name: 'autoorient_time',
+  help: 'Histogram of time taken to autoorient a jpeg image'
 });
 
 // service info

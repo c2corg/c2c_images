@@ -36,13 +36,13 @@ describe('POST /upload', () => {
   test('refuses unsupported formats', async () => {
     const response = await request(koa.callback()).post('/upload').attach('file', 'test/data/music.tiff');
     expect(response.status).toBe(400);
-    expect(response.text).toBe('Unsupported image format TIFF.');
+    expect(response.text).toBe('Unsupported image format.');
   });
 
   test('refuses invalid images', async () => {
     const response = await request(koa.callback()).post('/upload').attach('file', 'test/data/invalid_content.jpg');
     expect(response.status).toBe(400);
-    expect(response.text).toBe('Unrecognized image format.');
+    expect(response.text).toBe('Unsupported image format.');
   });
 
   test('uploads the file and thumbnails to incoming bucket', async () => {

@@ -1,21 +1,9 @@
+import baseConfig from './jest.config.common.mjs';
+
+// requires docker compose to run minio
 export default {
-  rootDir: '../../',
+  ...baseConfig,
+  displayName: 'S3',
   roots: ['<rootDir>/test/unit/s3'],
-  testEnvironment: 'node',
-  extensionsToTreatAsEsm: ['.ts'],
-  transform: {
-    '^.+\\.tsx?$': [
-      'ts-jest',
-      {
-        useESM: true,
-        // workaround for OOM issue, but lowers type checking
-        // see https://github.com/kulshekhar/ts-jest/issues/2015
-        isolatedModules: true
-      }
-    ]
-  },
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
-  },
   setupFiles: ['<rootDir>/test/environment/env-vars.s3.js']
 };

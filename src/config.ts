@@ -1,11 +1,12 @@
 import os from 'node:os';
+import yn from 'yn';
 
 export const SERVICE_NAME = 'c2c_images';
 
 export const SERVICE_PORT = process.env['SERVICE_PORT'] || 8080;
 export const METRICS_PORT = process.env['METRICS_PORT'] || 8081;
 export const METRICS_PATH = process.env['METRICS_PATH'] || '/metrics';
-export const DISABLE_PROMETHEUS_METRICS = (process.env['DISABLE_PROMETHEUS_METRICS'] || '0') === '1';
+export const DISABLE_PROMETHEUS_METRICS = yn(process.env['DISABLE_PROMETHEUS_METRICS'], { default: false });
 
 export const API_SECRET_KEY = process.env['API_SECRET_KEY'];
 
@@ -32,10 +33,12 @@ export const RESIZING_CONFIG: ResizeConfig[] = process.env['RESIZING_CONFIG']
       }
     ];
 export const CACHE_CONTROL = process.env['CACHE_CONTROL'] || 'public, max-age=3600';
-export const AUTO_ORIENT_ORIGINAL = (process.env['AUTO_ORIENT_ORIGINAL'] || '0') === '1';
-export const GENERATE_AVIF = (process.env['GENERATE_AVIF'] || '0') === '1';
-export const GENERATE_WEBP = (process.env['GENERATE_WEBP'] || '0') === '1';
+export const AUTO_ORIENT_ORIGINAL = yn(process.env['AUTO_ORIENT_ORIGINAL'], { default: false });
+export const GENERATE_AVIF = yn(process.env['GENERATE_AVIF'], { default: false });
+export const GENERATE_WEBP = yn(process.env['GENERATE_WEBP'], { default: false });
 
 export const S3_EXPIRE_HOURS = 2;
 
 export const ALLOWED_ORIGINS = (process.env['ALLOWED_ORIGINS'] ?? '*').split(',');
+
+export const PREFER_IDENTIFY_OVER_FILE = yn(process.env['PREFER_IDENTIFY_OVER_FILE'], { default: false });

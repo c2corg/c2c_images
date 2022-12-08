@@ -1,13 +1,16 @@
+import { transform } from '../exec/imagemagick.js';
 import { log } from '../log.js';
+import { imageRotationsHistogram } from '../metrics/prometheus.js';
 import { activeStorage, tempStorage } from '../storage/storage.js';
-import { transform } from './convert.js';
 import { createThumbnails, thumbnailKeys } from './thumbnails.js';
 
 export const rotateImages = async (originalKey: string, newKey: string, rotation: string): Promise<void> => {
   await activeStorage.copy(originalKey, tempStorage);
   const file = tempStorage.path(originalKey);
   const rotatedFile = tempStorage.path(newKey);
+  const end = imageRotationsHistogram.startTimer();
   transform(file, rotatedFile, ['-rotate', rotation]);
+  end();
 
   // generate new thumbnails from rotated image
   await createThumbnails(rotatedFile);
