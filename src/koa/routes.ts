@@ -51,7 +51,7 @@ router.post('/upload', bodyParser, async ctx => {
   }
 
   // create resized images
-  createThumbnails(tempStorage.path(originalKey));
+  await createThumbnails(tempStorage.path(originalKey));
 
   log.debug(`${keyPrefix} - uploading original file`);
   await Promise.all([originalKey, ...thumbnailKeys(originalKey)].map(key => tempStorage.move(key, incomingStorage)));

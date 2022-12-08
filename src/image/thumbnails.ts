@@ -22,7 +22,12 @@ export const thumbnailKeys = (key: string) =>
     return keys;
   });
 
-export const createThumbnail = (dir: string, originalKey: string, config: ResizeConfig, format?: string): void => {
+export const createThumbnail = async (
+  dir: string,
+  originalKey: string,
+  config: ResizeConfig,
+  format?: string
+): Promise<void> => {
   const originalPath = path.join(dir, originalKey);
   const resizedPath = path.join(dir, thumbnailKey(originalKey, config.suffix, format));
   const resizeConfig = config.convert;
@@ -31,7 +36,7 @@ export const createThumbnail = (dir: string, originalKey: string, config: Resize
   transform(originalPath, resizedPath, resizeConfig);
 };
 
-export const createThumbnails = (file: string): void => {
+export const createThumbnails = async (file: string): Promise<void> => {
   const { base, name, ext, dir } = path.parse(file);
   let rasterFile: string | undefined;
   let key = base;
@@ -47,9 +52,9 @@ export const createThumbnails = (file: string): void => {
 
   for (const config of RESIZING_CONFIG) {
     // generate thumbnail with default format
-    createThumbnail(dir, key, config);
+    await createThumbnail(dir, key, config);
 
-    // "modern" thumbnail formats
+    // "modern" thumbnail formats, asynchronously
     if (isWebpSupported && GENERATE_WEBP) {
       createThumbnail(dir, key, config, '.webp');
     }
