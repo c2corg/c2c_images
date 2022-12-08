@@ -3,6 +3,7 @@ export default {
   projects: [
     'test/config/jest.config.base.mjs',
     'test/config/jest.config.options.mjs',
+    'test/config/jest.config.nofile.mjs',
     'test/config/jest.config.s3.mjs'
   ]
 };

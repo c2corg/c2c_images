@@ -1,9 +1,11 @@
+import { fileCmdExists } from '../../../src/exec/file';
 import {
   imageMagickVersion,
-  isAvifSupported,
-  isWebpSupported,
-  rsvgConvertVersion
-} from '../../../src/image/convert.js';
+  isAvifWriteSupported,
+  isSvgReadSupported,
+  isWebpWriteSupported
+} from '../../../src/exec/imagemagick';
+import { rsvgConvertVersion } from '../../../src/exec/librsvg';
 
 describe('Image tools', () => {
   test('check that librsvg is installed', () => {
@@ -14,11 +16,19 @@ describe('Image tools', () => {
     expect(typeof imageMagickVersion()).toBe('string');
   });
 
-  test('can check if AVIF is supported', () => {
-    expect(typeof isAvifSupported).toBe('boolean');
+  test('check that file command is installed', () => {
+    expect(typeof fileCmdExists).toBe('boolean');
   });
 
-  test('can check if WEBP is supported', () => {
-    expect(typeof isWebpSupported).toBe('boolean');
+  test('can check if AVIF write is supported', () => {
+    expect(typeof isAvifWriteSupported).toBe('boolean');
+  });
+
+  test('can check if WEBP write is supported', () => {
+    expect(typeof isWebpWriteSupported).toBe('boolean');
+  });
+
+  test('can check if SVG read is supported', () => {
+    expect(typeof isSvgReadSupported).toBe('boolean');
   });
 });

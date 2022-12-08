@@ -19,6 +19,14 @@ describe('POST /rotate', () => {
     expect(response.status).toBe(400);
   });
 
+  test('refuses to rotate SVG', async () => {
+    const response = await request(koa.callback())
+      .post('/rotate')
+      .send({ secret: 'my secret', filename: '1234567890_1234567890.svg' });
+    expect(response.text).toBe('SVG images rotation is not supported.');
+    expect(response.status).toBe(400);
+  });
+
   test('refuses invalid rotation angle', async () => {
     const response = await request(koa.callback())
       .post('/rotate')

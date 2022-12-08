@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { GENERATE_AVIF, GENERATE_WEBP, ResizeConfig, RESIZING_CONFIG } from '../config.js';
+import { isAvifWriteSupported, isWebpWriteSupported, transform } from '../exec/imagemagick.js';
+import { rasterizeSvg } from '../exec/librsvg.js';
 import { log } from '../log.js';
-import { isAvifSupported, isWebpSupported, rasterizeSvg, transform } from './convert.js';
+import { imageGenerationsHistogram } from '../metrics/prometheus.js';
 
 const thumbnailKey = (key: string, suffix: string, format?: string) => {
   const { ext, name } = path.parse(key);
@@ -12,10 +14,10 @@ const thumbnailKey = (key: string, suffix: string, format?: string) => {
 export const thumbnailKeys = (key: string) =>
   RESIZING_CONFIG.flatMap(config => {
     const keys = [thumbnailKey(key, config.suffix)];
-    if (GENERATE_AVIF && isAvifSupported) {
+    if (GENERATE_AVIF && isAvifWriteSupported) {
       keys.push(thumbnailKey(key, config.suffix, '.avif'));
     }
-    if (GENERATE_WEBP && isWebpSupported) {
+    if (GENERATE_WEBP && isWebpWriteSupported) {
       keys.push(thumbnailKey(key, config.suffix, '.webp'));
     }
 
@@ -33,7 +35,9 @@ export const createThumbnail = async (
   const resizeConfig = config.convert;
 
   log.info(`Creating resized image ${resizedPath} with options ${resizeConfig}`);
+  const end = imageGenerationsHistogram.startTimer({ format: resizedPath.split('.').pop(), size: config.suffix });
   transform(originalPath, resizedPath, resizeConfig);
+  end();
 };
 
 export const createThumbnails = async (file: string): Promise<void> => {
@@ -55,10 +59,10 @@ export const createThumbnails = async (file: string): Promise<void> => {
     await createThumbnail(dir, key, config);
 
     // "modern" thumbnail formats, asynchronously
-    if (isWebpSupported && GENERATE_WEBP) {
+    if (isWebpWriteSupported && GENERATE_WEBP) {
       createThumbnail(dir, key, config, '.webp');
     }
-    if (isAvifSupported && GENERATE_AVIF) {
+    if (isAvifWriteSupported && GENERATE_AVIF) {
       createThumbnail(dir, key, config, '.avif');
     }
   }

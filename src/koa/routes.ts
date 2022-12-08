@@ -117,6 +117,10 @@ router.post('/delete', bodyParser, apiOnly, async ctx => {
 router.post('/rotate', bodyParser, apiOnly, async ctx => {
   const { rotation = '90', filename: key } = validate(ctx, RotateBody);
 
+  if (key.endsWith('.svg')) {
+    ctx.throw(400, 'SVG images rotation is not supported.');
+  }
+
   const published = await activeStorage.exists(key);
 
   if (!published) {
