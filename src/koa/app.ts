@@ -1,5 +1,5 @@
 import cors from '@koa/cors';
-import Koa, { Context } from 'koa';
+import Koa, { Context, HttpError } from 'koa';
 import { ALLOWED_ORIGINS } from '../config.js';
 import { log } from '../log.js';
 import { promErrorsCounter, promHttpReporter } from '../metrics/prometheus.js';
@@ -46,33 +46,15 @@ koa.use(async (ctx, next) => {
   try {
     await next();
     if (ctx.status === 404) {
-      // No route matched
       ctx.throw(404);
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    let message = {};
-    switch (error.status) {
-      case 400:
-      case 401:
-      case 403:
-      case 404:
-      case 405:
-      case 408:
-      case 409:
-      case 501:
-      case 504:
-        message = error.message;
-        break;
-      default:
-        if (['development', 'demo'].includes(process.env['NODE_ENV'] ?? '')) {
-          message = typeof error?.message === 'string' ? error.message : JSON.stringify(error.message);
-        } else {
-          message = 'Internal server error';
-        }
-        break;
+  } catch (error) {
+    const status = error instanceof HttpError ? error.status ?? error.statusCode : undefined;
+    let message = error instanceof HttpError ? error.message : `${error}`;
+    if (status === 500 && !['development', 'demo'].includes(process.env['NODE_ENV'] ?? '')) {
+      message = 'Internal server error';
     }
-    ctx.status = error.statusCode || error.status || 500;
+    ctx.status = status || 500;
     ctx.body = message;
 
     ctx.app.emit('error', error, ctx);
@@ -94,6 +76,6 @@ koa.use(async (ctx, next) => {
 });
 
 koa.use(router.routes());
-koa.use(router.allowedMethods({ throw: true }));
+koa.use(router.allowedMethods());
 
 export { koa };
