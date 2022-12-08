@@ -10,7 +10,7 @@ export const rotateImages = async (originalKey: string, newKey: string, rotation
   transform(file, rotatedFile, ['-rotate', rotation]);
 
   // generate new thumbnails from rotated image
-  createThumbnails(rotatedFile);
+  await createThumbnails(rotatedFile);
 
   // upload image and thumbnails to active storage
   await Promise.all([newKey, ...thumbnailKeys(newKey)].map(key => tempStorage.move(key, activeStorage)));
