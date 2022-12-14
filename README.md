@@ -198,9 +198,6 @@ Then run all tests via `npm run test:all`.
 
 Use `docker build` to build an image of the service.
 
-Note that the base image is currently alpine LTS which has imagemagick7
-available, which debian stable hasn't.
-
 ## Creating a version
 
 Use `npm version`.
