@@ -6,7 +6,7 @@ import { AUTO_ORIENT_ORIGINAL } from '../config.js';
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
 import { rotateImages } from '../image/rotate.js';
-import { createThumbnails, thumbnailKeys } from '../image/thumbnails.js';
+import { allThumbnailKeys, baseThumbnailKeys, createThumbnails, modernThumbnailKeys } from '../image/thumbnails.js';
 import { log } from '../log.js';
 import {
   promDeletedImagesCounter,
@@ -33,9 +33,15 @@ router.post('/upload', bodyParser, async ctx => {
   const keyPrefix = generateUniqueKeyPrefix();
   const { file } = validate(ctx, UploadFiles, 'files');
 
+  const uploadImage = (key: string) => tempStorage.move(key, incomingStorage);
+  const uploadOriginalAndBaseThumbnails = (key: string) =>
+    Promise.all([tempStorage.copy(key, incomingStorage), ...baseThumbnailKeys(key).map(uploadImage)]);
+  const uploadModernThumbnails = (key: string) =>
+    Promise.all([tempStorage.delete(key), ...modernThumbnailKeys(key).map(uploadImage)]);
+
   let format: string;
   try {
-    format = getFileFormat(file.filepath);
+    format = await getFileFormat(file.filepath);
   } catch (error: unknown) {
     ctx.throw(400, error instanceof Error ? error.message : `${error}`);
     return;
@@ -47,14 +53,16 @@ router.post('/upload', bodyParser, async ctx => {
 
   // auto orient
   if (AUTO_ORIENT_ORIGINAL && format === 'jpg') {
-    autoOrient(tempStorage.path(originalKey));
+    await autoOrient(tempStorage.path(originalKey));
   }
 
   // create resized images
-  await createThumbnails(tempStorage.path(originalKey));
+  const { allRendered } = await createThumbnails(tempStorage.path(originalKey));
 
   log.debug(`${keyPrefix} - uploading original file`);
-  await Promise.all([originalKey, ...thumbnailKeys(originalKey)].map(key => tempStorage.move(key, incomingStorage)));
+
+  await uploadOriginalAndBaseThumbnails(originalKey);
+  allRendered.then(async () => uploadModernThumbnails(originalKey)).catch(error => log.error(error));
 
   log.debug(`${keyPrefix} - returning response`);
 
@@ -79,7 +87,7 @@ router.post('/publish', bodyParser, apiOnly, async ctx => {
 
   if (!published) {
     await Promise.all(
-      thumbnailKeys(key).map(async resizedKey => {
+      allThumbnailKeys(key).map(async resizedKey => {
         if (await incomingStorage.exists(resizedKey)) {
           return incomingStorage.move(resizedKey, activeStorage);
         }
@@ -106,7 +114,7 @@ router.post('/delete', bodyParser, apiOnly, async ctx => {
 
   await Promise.all(
     keys
-      .flatMap(key => [key, ...thumbnailKeys(key)])
+      .flatMap(key => [key, ...allThumbnailKeys(key)])
       .map(key => activeStorage.delete(key).catch(() => log.error(`Deleting ${key} failed`)))
   );
 
@@ -114,10 +122,13 @@ router.post('/delete', bodyParser, apiOnly, async ctx => {
   ctx.body = { success: true };
 });
 
+// Rotate the image and return a new key
+// Only called by api service
 router.post('/rotate', bodyParser, apiOnly, async ctx => {
   const { rotation = '90', filename: key } = validate(ctx, RotateBody);
+  const { ext } = path.parse(key);
 
-  if (key.endsWith('.svg')) {
+  if (ext === '.svg') {
     ctx.throw(400, 'SVG images rotation is not supported.');
   }
 
@@ -127,7 +138,7 @@ router.post('/rotate', bodyParser, apiOnly, async ctx => {
     ctx.throw(404, 'Not found');
   }
 
-  const newKey = `${generateUniqueKeyPrefix()}${path.parse(key).ext}`;
+  const newKey = `${generateUniqueKeyPrefix()}${ext}`;
 
   await rotateImages(key, newKey, rotation);
 

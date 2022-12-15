@@ -11,9 +11,11 @@ const thumbnailKey = (key: string, suffix: string, format?: string) => {
   return `${name}${suffix}${ext === '.svg' ? '.jpg' : format ?? ext}`;
 };
 
-export const thumbnailKeys = (key: string) =>
+export const baseThumbnailKeys = (key: string) => RESIZING_CONFIG.flatMap(config => [thumbnailKey(key, config.suffix)]);
+
+export const modernThumbnailKeys = (key: string) =>
   RESIZING_CONFIG.flatMap(config => {
-    const keys = [thumbnailKey(key, config.suffix)];
+    const keys: string[] = [];
     if (GENERATE_AVIF && isAvifWriteSupported) {
       keys.push(thumbnailKey(key, config.suffix, '.avif'));
     }
@@ -23,6 +25,8 @@ export const thumbnailKeys = (key: string) =>
 
     return keys;
   });
+
+export const allThumbnailKeys = (key: string) => [...baseThumbnailKeys(key), ...modernThumbnailKeys(key)];
 
 export const createThumbnail = async (
   dir: string,
@@ -36,11 +40,17 @@ export const createThumbnail = async (
 
   log.info(`Creating resized image ${resizedPath} with options ${resizeConfig}`);
   const end = imageGenerationsHistogram.startTimer({ format: resizedPath.split('.').pop(), size: config.suffix });
-  transform(originalPath, resizedPath, resizeConfig);
+  await transform(originalPath, resizedPath, resizeConfig);
   end();
 };
 
-export const createThumbnails = async (file: string): Promise<void> => {
+/**
+ * Creates thumbnails for an image.
+ * The promise is fullfilled once the "basic" thumbnails are created.
+ * An additional promise (allRendered) can be used to be notified
+ * when modern images are available.
+ */
+export const createThumbnails = async (file: string): Promise<{ allRendered: Promise<void[]> }> => {
   const { base, name, ext, dir } = path.parse(file);
   let rasterFile: string | undefined;
   let key = base;
@@ -50,24 +60,30 @@ export const createThumbnails = async (file: string): Promise<void> => {
     rasterFile = path.join(dir, jpgKey);
     // rasterized svg will actually be a png file,
     // but it will not be kept and thumbnails will be jpg because of the extension
-    rasterizeSvg(path.join(dir, svgKey), rasterFile);
+    await rasterizeSvg(path.join(dir, svgKey), rasterFile);
     key = jpgKey;
   }
 
-  for (const config of RESIZING_CONFIG) {
-    // generate thumbnail with default format
-    await createThumbnail(dir, key, config);
+  // generate thumbnails with default format
+  await Promise.all(RESIZING_CONFIG.map(config => createThumbnail(dir, key, config)));
 
-    // "modern" thumbnail formats, asynchronously
-    if (isWebpWriteSupported && GENERATE_WEBP) {
-      createThumbnail(dir, key, config, '.webp');
+  // "modern" thumbnail formats, asynchronously
+  const allRendered = Promise.all(
+    RESIZING_CONFIG.flatMap(config => {
+      const promises: Promise<void>[] = [];
+      if (isWebpWriteSupported && GENERATE_WEBP) {
+        promises.push(createThumbnail(dir, key, config, '.webp'));
+      }
+      if (isAvifWriteSupported && GENERATE_AVIF) {
+        promises.push(createThumbnail(dir, key, config, '.avif'));
+      }
+      return promises;
+    })
+  ).finally(() => {
+    if (rasterFile) {
+      fs.unlinkSync(rasterFile);
     }
-    if (isAvifWriteSupported && GENERATE_AVIF) {
-      createThumbnail(dir, key, config, '.avif');
-    }
-  }
+  });
 
-  if (rasterFile) {
-    fs.unlinkSync(rasterFile);
-  }
+  return { allRendered };
 };

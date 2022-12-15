@@ -1,15 +1,15 @@
 import { sync as commandExists } from 'command-exists';
 import { log } from '../log.js';
 import { imageGenerationsHistogram } from '../metrics/prometheus.js';
-import { runSync } from './run.js';
+import { runAsync, runSync } from './run.js';
 
 const cmd = 'rsvg-convert';
 const cmdExists = commandExists(cmd);
 
-export const rasterizeSvg = (svgFile: string, pngFile: string) => {
+export const rasterizeSvg = async (svgFile: string, pngFile: string) => {
   log.info(`Rasterizing SVG ${svgFile}`);
   const end = imageGenerationsHistogram.startTimer({ format: 'svg', size: 'original' });
-  runSync('rsvg-convert', ['-b', 'white', svgFile, '-o', pngFile]);
+  await runAsync('rsvg-convert', ['-b', 'white', svgFile, '-o', pngFile]);
   end();
 };
 

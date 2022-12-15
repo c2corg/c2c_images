@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { thumbnailKeys } from '../../../../src/image/thumbnails.js';
+import { allThumbnailKeys } from '../../../../src/image/thumbnails.js';
 import { koa } from '../../../../src/koa/app.js';
 import { incomingStorage } from '../../../../src/storage/storage.js';
 
@@ -50,8 +50,8 @@ describe('POST /upload', () => {
     expect(response.status).toBe(200);
     const { filename: key } = JSON.parse(response.text);
     expect(await incomingStorage.exists(key)).toBe(true);
-    expect(thumbnailKeys(key).length).toBe(3); // no webp or avif
-    for (const resizedKey of thumbnailKeys(key)) {
+    expect(allThumbnailKeys(key).length).toBe(3); // no webp or avif
+    for (const resizedKey of allThumbnailKeys(key)) {
       expect(await incomingStorage.exists(resizedKey)).toBe(true);
     }
   });
@@ -61,8 +61,8 @@ describe('POST /upload', () => {
     expect(response.status).toBe(200);
     const { filename: key } = JSON.parse(response.text);
     expect(await incomingStorage.exists(key)).toBe(true);
-    expect(thumbnailKeys(key).length).toBe(3);
-    for (const resizedKey of thumbnailKeys(key)) {
+    expect(allThumbnailKeys(key).length).toBe(3);
+    for (const resizedKey of allThumbnailKeys(key)) {
       expect(await incomingStorage.exists(resizedKey)).toBe(true);
     }
   });

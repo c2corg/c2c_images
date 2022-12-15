@@ -1,5 +1,5 @@
 import { sync as commandExists } from 'command-exists';
-import { runSync } from './run.js';
+import { runAsync, runSync } from './run.js';
 
 // 'magick' is the base command for version 7
 // 'identify' and 'convert' for version 6
@@ -7,18 +7,19 @@ import { runSync } from './run.js';
 const useImageMagick7 = commandExists('magick');
 export const imageMagickCmdExists = useImageMagick7 || commandExists('identify');
 
-export const transform = (originalFile: string, targetFile: string, options: string[]) => {
-  runSync(useImageMagick7 ? 'magick' : 'convert', [originalFile, ...options, targetFile]);
-};
+export const transform = async (originalFile: string, targetFile: string, options: string[]) =>
+  runAsync(useImageMagick7 ? 'magick' : 'convert', [originalFile, ...options, targetFile]);
 
 // We don't use -format option because it creates decode delegate error
 // depending on system and build configuration. We rather parse the default output,
 // which doesn't and has all needed information.
 // Depending on the system and the build configuration of imagemagick, it can
 // return 'PNG' for SVG files.
-export const identify = (filename: string): { format: string; widthxheight: string } => {
+export const identify = async (filename: string): Promise<{ format: string; widthxheight: string }> => {
   try {
-    const result = useImageMagick7 ? runSync('magick', ['identify', filename]) : runSync('identify', [filename]);
+    const result = useImageMagick7
+      ? await runAsync('magick', ['identify', filename])
+      : await runAsync('identify', [filename]);
     const [, format, widthxheight] = result.split(' ');
 
     if (!format || !widthxheight) {
