@@ -1,5 +1,5 @@
-FROM node:lts-alpine AS build
-RUN apk add --no-cache dumb-init
+FROM node:lts-bullseye-slim AS build
+RUN apt-get update && apt-get install -y --no-install-recommends dumb-init
 WORKDIR /usr
 COPY package.json package-lock.json tsconfig.json ./
 RUN npm ci --fund=false
@@ -7,30 +7,27 @@ COPY src ./src
 RUN npm run build
 RUN npm prune --omit "dev"
 
-FROM node:lts-alpine
+FROM node:lts-bullseye-slim
 ARG VERSION
 ENV npm_package_version=${VERSION}
-RUN apk add --no-cache \
-    librsvg \
-    imagemagick
-RUN apk add --no-cache \
-    terminus-font \
-    ttf-inconsolata \
-    ttf-dejavu \
-    ttf-opensans \
-    font-bitstream-100dpi \
-    font-bitstream-75dpi \
-    font-bitstream-speedo \
-    font-bitstream-type1 \
-    font-noto-all \
-    ttf-font-awesome \
-    font-croscore \
-    ttf-cantarell \
-    ttf-linux-libertine \
-    ttf-liberation \
-    ttf-droid \
-    ttf-droid-nonlatin \
-    msttcorefonts-installer
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        file \
+        librsvg2-bin \
+        imagemagick \
+        fonts-liberation \
+        fonts-dejavu \
+        ttf-bitstream-vera \
+        texlive-fonts-recommended \
+        gsfonts \
+        gsfonts-x11 \
+        fonts-roboto \
+        fonts-noto \
+        fonts-linuxlibertine\
+        fonts-inconsolata \
+        fonts-cantarell \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
 WORKDIR /usr/bin/app
 COPY --from=build --chown=node:node /usr/package.json ./
