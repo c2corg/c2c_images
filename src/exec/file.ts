@@ -1,5 +1,5 @@
 import { sync as commandExists } from 'command-exists';
-import { runAsync } from './run';
+import { runAsync } from './run.js';
 
 const cmd = 'file';
 export const fileCmdExists = commandExists(cmd);
