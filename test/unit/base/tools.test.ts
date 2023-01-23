@@ -1,11 +1,11 @@
-import { fileCmdExists } from '../../../src/exec/file';
+import { fileCmdExists } from '../../../src/exec/file.js';
 import {
   imageMagickVersion,
   isAvifWriteSupported,
   isSvgReadSupported,
   isWebpWriteSupported
-} from '../../../src/exec/imagemagick';
-import { rsvgConvertVersion } from '../../../src/exec/librsvg';
+} from '../../../src/exec/imagemagick.js';
+import { rsvgConvertVersion } from '../../../src/exec/librsvg.js';
 
 describe('Image tools', () => {
   test('check that librsvg is installed', () => {
