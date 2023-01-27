@@ -1,3 +1,4 @@
+import { ObjectCannedACL } from '@aws-sdk/client-s3';
 import fs from 'node:fs';
 import request from 'supertest';
 import { generateUniqueKeyPrefix } from '../../../src/koa/utils.js';
@@ -11,10 +12,15 @@ describe('S3 storage', () => {
   let incomingStorage: S3Storage;
   let activeStorage: S3Storage;
   beforeAll(() => {
+    incomingStorage = new S3Storage(
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      process.env['INCOMING_BUCKET']!,
+      getS3Params('INCOMING'),
+      ObjectCannedACL.private,
+      true
+    );
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    incomingStorage = new S3Storage(process.env['INCOMING_BUCKET']!, getS3Params('INCOMING'), 'private', true);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    activeStorage = new S3Storage(process.env['ACTIVE_BUCKET']!, getS3Params('ACTIVE'), 'public-read');
+    activeStorage = new S3Storage(process.env['ACTIVE_BUCKET']!, getS3Params('ACTIVE'), ObjectCannedACL.public_read);
   });
 
   test('Standard protocol', async () => {
