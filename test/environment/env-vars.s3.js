@@ -9,4 +9,4 @@ process.env.ACTIVE_PREFIX = 'MINIO';
 process.env.MINIO_ENDPOINT = 'http://localhost:9000';
 process.env.MINIO_ACCESS_KEY_ID = 'minio';
 process.env.MINIO_SECRET_KEY = 'miniosecret';
-process.env.MINIO_DEFAULT8REGION = 'use-east-1';
+process.env.MINIO_DEFAULT_REGION = 'use-east-1';
