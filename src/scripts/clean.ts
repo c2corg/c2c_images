@@ -3,7 +3,7 @@
 // Use this script to clean the incoming folder in case
 // you face such issue.
 
-import aws from 'aws-sdk';
+import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { S3_EXPIRE_HOURS, STORAGE_BACKEND } from '../config.js';
 import { log } from '../log.js';
 import { getS3Params } from '../storage/storage.js';
@@ -14,11 +14,9 @@ if (STORAGE_BACKEND !== 's3' || !INCOMING_BUCKET) {
 }
 
 const params = getS3Params('INCOMING');
-const client = new aws.S3({
+const client = new S3Client({
   ...params,
-  sslEnabled: true,
-  signatureVersion: 'v4',
-  s3ForcePathStyle: true
+  forcePathStyle: true
 });
 
 let total = 0;
@@ -37,25 +35,21 @@ async function getObsoleteFiles(
   bucket: string,
   startAfter?: string
 ): Promise<{ obsoleteKeys: string[]; end?: string }> {
-  let end: string | undefined;
-  const keys = await client
-    .listObjectsV2({ Bucket: bucket, StartAfter: startAfter })
-    .promise()
-    .then(({ Contents }) => {
-      end = Contents?.at(-1)?.Key;
-      return (
-        Contents?.filter(
-          ({ Key, LastModified }) =>
-            Key && LastModified && LastModified.getTime() + S3_EXPIRE_HOURS * 1000 * 60 * 60 < Date.now()
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        ).map(({ Key }) => Key!) ?? []
-      );
-    });
+  const { Contents } = await client.send(new ListObjectsV2Command({ Bucket: bucket, StartAfter: startAfter }));
+
+  const end = Contents?.at(-1)?.Key;
+  const keys =
+    Contents?.filter(
+      ({ Key, LastModified }) =>
+        Key && LastModified && LastModified.getTime() + S3_EXPIRE_HOURS * 1000 * 60 * 60 < Date.now()
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    ).map(({ Key }) => Key!) ?? [];
+
   return { obsoleteKeys: keys, end };
 }
 
 async function deleteFiles(bucket: string, keys: string[]): Promise<void> {
-  await client
-    .deleteObjects({ Bucket: bucket, Delete: { Quiet: true, Objects: keys.map(key => ({ Key: key })) } })
-    .promise();
+  await client.send(
+    new DeleteObjectsCommand({ Bucket: bucket, Delete: { Quiet: true, Objects: keys.map(key => ({ Key: key })) } })
+  );
 }

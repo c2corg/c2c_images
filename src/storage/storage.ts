@@ -1,6 +1,15 @@
-import aws, { S3 } from 'aws-sdk';
+import {
+  CopyObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  ObjectCannedACL,
+  PutObjectCommand,
+  S3Client
+} from '@aws-sdk/client-s3';
 import fs from 'node:fs';
 import path from 'node:path';
+import type { Readable } from 'node:stream';
 import sanitize from 'sanitize-filename';
 import { CACHE_CONTROL, S3_EXPIRE_HOURS, STORAGE_BACKEND, TEMP_FOLDER } from '../config.js';
 import { getMimeTypeFromKey } from '../image/filetype.js';
@@ -73,39 +82,39 @@ export class LocalStorage implements Storage {
 
 interface S3Params {
   endpoint: string;
-  accessKeyId: string;
-  secretAccessKey: string;
+  credentials: {
+    accessKeyId: string;
+    secretAccessKey: string;
+  };
   region?: string;
 }
 
 export class S3Storage implements Storage {
   readonly #endpoint: string;
   readonly #bucketName: string;
-  readonly #client: aws.S3;
+  readonly #client: S3Client;
   readonly #shouldExpire: boolean;
-  readonly #defaultACL: S3.ObjectCannedACL;
+  readonly #defaultACL: ObjectCannedACL;
 
-  constructor(bucketName: string, params: S3Params, defaulACL: S3.ObjectCannedACL, shouldExpire = false) {
+  constructor(bucketName: string, params: S3Params, defaulACL: ObjectCannedACL, shouldExpire = false) {
     this.#bucketName = bucketName;
     this.#shouldExpire = shouldExpire;
     this.#defaultACL = defaulACL;
     this.#endpoint = params.endpoint;
-    this.#client = new aws.S3({
+    this.#client = new S3Client({
       ...params,
-      sslEnabled: true,
-      signatureVersion: 'v4',
-      s3ForcePathStyle: true
+      forcePathStyle: true
     });
   }
 
   public async exists(key: string): Promise<boolean> {
     try {
-      await this.#client
-        .headObject({
+      await this.#client.send(
+        new HeadObjectCommand({
           Bucket: this.#bucketName,
           Key: key
         })
-        .promise();
+      );
       return true;
     } catch {
       return false;
@@ -113,20 +122,27 @@ export class S3Storage implements Storage {
   }
 
   public async get(key: string): Promise<Buffer> {
-    return this.#client
-      .getObject({
+    const { Body } = await this.#client.send(
+      new GetObjectCommand({
         Bucket: this.#bucketName,
         Key: key
       })
-      .promise()
-      .then(output => output.Body as Buffer);
+    );
+
+    const stream = Body as Readable;
+    return new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      stream.on('data', chunk => chunks.push(chunk));
+      stream.once('end', () => resolve(Buffer.concat(chunks)));
+      stream.once('error', reject);
+    });
   }
 
   public async put(key: string, originalFilePath: string): Promise<void> {
     const buffer = fs.readFileSync(originalFilePath);
     const expires = this.#shouldExpire ? new Date(Date.now() + S3_EXPIRE_HOURS * 1000 * 60 * 60) : undefined;
-    return this.#client
-      .putObject({
+    await this.#client.send(
+      new PutObjectCommand({
         Bucket: this.#bucketName,
         Key: key,
         Body: buffer,
@@ -135,24 +151,22 @@ export class S3Storage implements Storage {
         ACL: this.#defaultACL,
         ContentType: getMimeTypeFromKey(key)
       })
-      .promise()
-      .then(() => undefined);
+    );
   }
 
   public async delete(key: string): Promise<void> {
-    return this.#client
-      .deleteObject({
+    await this.#client.send(
+      new DeleteObjectCommand({
         Bucket: this.#bucketName,
         Key: key
       })
-      .promise()
-      .then(() => undefined);
+    );
   }
 
   public async copy(key: string, destinationStorage: Storage): Promise<void> {
     if (destinationStorage instanceof S3Storage) {
-      return this.#client
-        .copyObject({
+      await this.#client.send(
+        new CopyObjectCommand({
           Bucket: destinationStorage.#bucketName,
           Key: key,
           CopySource: `/${this.#bucketName}/${key}`,
@@ -160,8 +174,7 @@ export class S3Storage implements Storage {
           ACL: destinationStorage.#defaultACL,
           ContentType: getMimeTypeFromKey(key)
         })
-        .promise()
-        .then(() => undefined);
+      );
     } else if (destinationStorage instanceof LocalStorage) {
       fs.writeFileSync(destinationStorage.path(key), await this.get(key));
     } else {
@@ -175,13 +188,13 @@ export class S3Storage implements Storage {
   }
 
   public async lastModified(key: string): Promise<Date | undefined> {
-    return this.#client
-      .headObject({
+    const { LastModified } = await this.#client.send(
+      new HeadObjectCommand({
         Bucket: this.#bucketName,
         Key: key
       })
-      .promise()
-      .then(({ LastModified }) => LastModified);
+    );
+    return LastModified;
   }
 
   public get baseUrl(): string {
@@ -204,9 +217,11 @@ export const getS3Params = (prefix: string) => {
   }
 
   return {
+    credentials: {
+      accessKeyId: ACCESS_KEY_ID,
+      secretAccessKey: SECRET_KEY
+    },
     endpoint: ENDPOINT,
-    accessKeyId: ACCESS_KEY_ID,
-    secretAccessKey: SECRET_KEY,
     region: DEFAULT_REGION
   };
 };
@@ -219,8 +234,13 @@ if (STORAGE_BACKEND === 's3') {
   if (!process.env['INCOMING_BUCKET'] || !process.env['ACTIVE_BUCKET']) {
     throw new Error('INCOMING_BUCKET and ACTIVE_BUCKET must be defined');
   }
-  incomingStorage = new S3Storage(process.env['INCOMING_BUCKET'], getS3Params('INCOMING'), 'private', true);
-  activeStorage = new S3Storage(process.env['ACTIVE_BUCKET'], getS3Params('ACTIVE'), 'public-read');
+  incomingStorage = new S3Storage(
+    process.env['INCOMING_BUCKET'],
+    getS3Params('INCOMING'),
+    ObjectCannedACL.private,
+    true
+  );
+  activeStorage = new S3Storage(process.env['ACTIVE_BUCKET'], getS3Params('ACTIVE'), ObjectCannedACL.public_read);
 } else if (process.env['STORAGE_BACKEND'] === 'local') {
   if (!process.env['INCOMING_FOLDER'] || !process.env['ACTIVE_FOLDER']) {
     throw new Error('INCOMING_FOLDER and ACTIVE_FOLDER must be defined');
