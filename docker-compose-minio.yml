@@ -3,8 +3,8 @@ services:
   minio:
     image: minio/minio
     environment:
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: miniosecret
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniosecret
     command:
       - server
       - /data
