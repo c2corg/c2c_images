@@ -49,7 +49,13 @@ export const promUploadedImagesCounter = new Counter({
 // published images
 export const promPublishedImagesCounter = new Counter({
   name: 'published_images',
-  help: 'Counter of images published to the active bucket'
+  help: 'Counter of images published to the active bucket',
+  labelNames: ['key'] as const
+});
+
+export const promPublishedThumbnailsErrorCounter = new Counter({
+  name: 'published_thumbnails_error',
+  help: 'Counter of thumbnails that could not be published to the active bucket'
 });
 
 // deleted images

@@ -2,7 +2,7 @@ import Router from '@koa/router';
 import { koaBody } from 'koa-body';
 import fs from 'node:fs';
 import path from 'node:path';
-import { AUTO_ORIENT_ORIGINAL } from '../config.js';
+import { AUTO_ORIENT_ORIGINAL, THUMBNAILS_PUBLISH_DELAY } from '../config.js';
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
 import { rotateImages } from '../image/rotate.js';
@@ -10,7 +10,9 @@ import { allThumbnailKeys, baseThumbnailKeys, createThumbnails, modernThumbnailK
 import { log } from '../log.js';
 import {
   promDeletedImagesCounter,
+  promErrorsCounter,
   promPublishedImagesCounter,
+  promPublishedThumbnailsErrorCounter,
   promRotatedImagesCounter,
   promUploadedImagesCounter
 } from '../metrics/prometheus.js';
@@ -62,7 +64,12 @@ router.post('/upload', bodyParser, async ctx => {
   log.debug(`${keyPrefix} - uploading original file`);
 
   await uploadOriginalAndBaseThumbnails(originalKey);
-  allRendered.then(async () => uploadModernThumbnails(originalKey)).catch(error => log.error(error));
+  allRendered
+    .then(async () => uploadModernThumbnails(originalKey))
+    .catch(error => {
+      log.error(error);
+      promErrorsCounter.inc();
+    });
 
   log.debug(`${keyPrefix} - returning response`);
 
@@ -86,13 +93,43 @@ router.post('/publish', bodyParser, apiOnly, async ctx => {
   }
 
   if (!published) {
-    await Promise.all(
-      allThumbnailKeys(key).map(async resizedKey => {
-        if (await incomingStorage.exists(resizedKey)) {
-          return incomingStorage.move(resizedKey, activeStorage);
-        }
-      })
-    );
+    const publishThumbnails = async (thumbnailKeys: string[]): Promise<string[]> => {
+      const unrenderedThumbnailKeys: string[] = [];
+      await Promise.all(
+        thumbnailKeys.map(async resizedKey => {
+          if (await incomingStorage.exists(resizedKey)) {
+            return incomingStorage.move(resizedKey, activeStorage);
+          } else {
+            unrenderedThumbnailKeys.push(resizedKey);
+          }
+        })
+      );
+      return unrenderedThumbnailKeys;
+    };
+
+    const missingThumbnailKeys = await publishThumbnails(allThumbnailKeys(key)).then();
+
+    // In some cases, it could be that all "modern" thumbnails are not yet generated (they are generated asyncrhonously)
+    // In that case, we give it some more time to fullfill. This will be done asynchronously, and will not prevent the response to be sent.
+    if (missingThumbnailKeys.length) {
+      setTimeout(
+        async () =>
+          publishThumbnails(missingThumbnailKeys)
+            .then(({ length }) => {
+              if (!length) {
+                return;
+              }
+              // some thumbnails were not generated
+              log.error(`${length} thumbnails could not be published for image ${key}`);
+              promPublishedThumbnailsErrorCounter.labels({ key }).inc(length);
+            })
+            .catch(error => {
+              log.error(error);
+              promErrorsCounter.inc();
+            }),
+        THUMBNAILS_PUBLISH_DELAY
+      );
+    }
 
     await incomingStorage.move(key, activeStorage);
 

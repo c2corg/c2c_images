@@ -37,8 +37,8 @@ export const AUTO_ORIENT_ORIGINAL = yn(process.env['AUTO_ORIENT_ORIGINAL'], { de
 export const GENERATE_AVIF = yn(process.env['GENERATE_AVIF'], { default: false });
 export const GENERATE_WEBP = yn(process.env['GENERATE_WEBP'], { default: false });
 
-export const S3_EXPIRE_HOURS = 2;
-
 export const ALLOWED_ORIGINS = (process.env['ALLOWED_ORIGINS'] ?? '*').split(',');
 
 export const PREFER_IDENTIFY_OVER_FILE = yn(process.env['PREFER_IDENTIFY_OVER_FILE'], { default: false });
+export const THUMBNAILS_PUBLISH_DELAY = Number.parseInt(process.env['THUMBNAILS_PUBLISH_DELAY'] ?? '', 10) || 20000;
+export const S3_EXPIRE_HOURS = 2;
