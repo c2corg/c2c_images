@@ -107,7 +107,7 @@ router.post('/publish', bodyParser, apiOnly, async ctx => {
       return unrenderedThumbnailKeys;
     };
 
-    const missingThumbnailKeys = await publishThumbnails(allThumbnailKeys(key)).then();
+    const missingThumbnailKeys = await publishThumbnails(allThumbnailKeys(key));
 
     // In some cases, it could be that all "modern" thumbnails are not yet generated (they are generated asyncrhonously)
     // In that case, we give it some more time to fullfill. This will be done asynchronously, and will not prevent the response to be sent.
