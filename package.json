@@ -28,7 +28,7 @@
   },
   "homepage": "https://www.camptocamp.org",
   "devDependencies": {
-    "@types/async": "3.2.16",
+    "@types/async": "3.2.18",
     "@types/command-exists": "1.2.0",
     "@types/cross-spawn": "6.0.2",
     "@types/debug": "4.1.7",
