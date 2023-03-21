@@ -49,7 +49,7 @@ describe('Asynchronous generation of Webp and Avif enabled', () => {
         .send({ secret: 'my secret', filename: `${key}.png`, rotation: '90' });
 
       expect(response.status).toBe(200);
-      const { filename } = JSON.parse(response.text);
+      const { filename } = JSON.parse(response.text) as { filename: string };
 
       // initial image and thumbnails have been deleted
       expect(await activeStorage.exists(`${key}.png`)).toBe(false);
