@@ -52,7 +52,7 @@ describe('S3 storage', () => {
     expect(await activeStorage.exists(key)).toBe(false);
 
     // delete a file that does not exist won't throw in s3
-    expect(activeStorage.delete('does_not_exist.jpg')).resolves.toBeUndefined();
+    expect(await activeStorage.delete('does_not_exist.jpg')).toBeUndefined();
   });
 
   test('Rotating protocol', async () => {

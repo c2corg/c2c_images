@@ -25,7 +25,7 @@ export const router = new Router();
 const bodyParser = koaBody({ multipart: true });
 
 // Health endpoint
-router.get('/ping', async ctx => {
+router.get('/ping', ctx => {
   ctx.body = 'Pong!';
 });
 
@@ -45,6 +45,7 @@ router.post('/upload', bodyParser, async ctx => {
   try {
     format = await getFileFormat(file.filepath);
   } catch (error: unknown) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     ctx.throw(400, error instanceof Error ? error.message : `${error}`);
     return;
   }
@@ -112,23 +113,21 @@ router.post('/publish', bodyParser, apiOnly, async ctx => {
     // In some cases, it could be that all "modern" thumbnails are not yet generated (they are generated asyncrhonously)
     // In that case, we give it some more time to fullfill. This will be done asynchronously, and will not prevent the response to be sent.
     if (missingThumbnailKeys.length) {
-      setTimeout(
-        async () =>
-          publishThumbnails(missingThumbnailKeys)
-            .then(({ length }) => {
-              if (!length) {
-                return;
-              }
-              // some thumbnails were not generated
-              log.error(`${length} thumbnails could not be published for image ${key}`);
-              promPublishedThumbnailsErrorCounter.labels({ key }).inc(length);
-            })
-            .catch(error => {
-              log.error(error);
-              promErrorsCounter.inc();
-            }),
-        THUMBNAILS_PUBLISH_DELAY
-      );
+      setTimeout(() => {
+        publishThumbnails(missingThumbnailKeys)
+          .then(({ length }) => {
+            if (!length) {
+              return;
+            }
+            // some thumbnails were not generated
+            log.error(`${length} thumbnails could not be published for image ${key}`);
+            promPublishedThumbnailsErrorCounter.labels({ key }).inc(length);
+          })
+          .catch(error => {
+            log.error(error);
+            promErrorsCounter.inc();
+          });
+      }, THUMBNAILS_PUBLISH_DELAY);
     }
 
     await incomingStorage.move(key, activeStorage);

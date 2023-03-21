@@ -10,7 +10,7 @@ export const runSync = (command: string, args: string[]): string => {
     throw error;
   }
 
-  if (status !== 0) {
+  if (status) {
     throw new Error(`Command failed, exited with code #${status}`);
   }
 
@@ -30,7 +30,7 @@ export const runAsync = async (command: string, args: string[]): Promise<string>
     });
 
     child.on('close', code => {
-      if (code !== 0) {
+      if (code) {
         reject(new Error(`Command failed, exited with code #${code}`));
       }
       resolve(stdout);

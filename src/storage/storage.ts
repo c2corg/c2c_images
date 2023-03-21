@@ -7,7 +7,7 @@ import {
   PutObjectCommand,
   S3Client
 } from '@aws-sdk/client-s3';
-import fs from 'node:fs';
+import fs, { constants, promises as fsPromises } from 'node:fs';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
 import sanitize from 'sanitize-filename';
@@ -39,19 +39,21 @@ export class LocalStorage implements Storage {
   }
 
   public async exists(key: string): Promise<boolean> {
-    return fs.existsSync(this.path(key));
+    return new Promise<boolean>(resolve => {
+      fs.access(this.path(key), constants.F_OK, err => resolve(!err));
+    });
   }
 
   public async get(key: string): Promise<Buffer> {
-    return fs.readFileSync(this.path(key));
+    return fsPromises.readFile(this.path(key));
   }
 
   public async put(key: string, originalFilePath: string): Promise<void> {
-    return fs.copyFileSync(originalFilePath, this.path(key));
+    return fsPromises.copyFile(originalFilePath, this.path(key));
   }
 
   public async delete(key: string): Promise<void> {
-    return fs.unlinkSync(this.path(key));
+    return fsPromises.unlink(this.path(key));
   }
 
   public async copy(key: string, destinationStorage: Storage): Promise<void> {
@@ -76,7 +78,8 @@ export class LocalStorage implements Storage {
   }
 
   public async lastModified(key: string): Promise<Date> {
-    return fs.statSync(this.path(key)).mtime;
+    const stats = await fsPromises.stat(this.path(key));
+    return stats.mtime;
   }
 }
 
@@ -132,7 +135,7 @@ export class S3Storage implements Storage {
     const stream = Body as Readable;
     return new Promise<Buffer>((resolve, reject) => {
       const chunks: Buffer[] = [];
-      stream.on('data', chunk => chunks.push(chunk));
+      stream.on('data', chunk => chunks.push(chunk as Buffer));
       stream.once('end', () => resolve(Buffer.concat(chunks)));
       stream.once('error', reject);
     });
@@ -204,14 +207,14 @@ export class S3Storage implements Storage {
 
 export const getS3Params = (prefix: string) => {
   const PREFIX = process.env[`${prefix}_PREFIX`];
+  if (!PREFIX) {
+    throw new Error(`${prefix}_PREFIX must be defined`);
+  }
+
   const ENDPOINT = process.env[`${PREFIX}_ENDPOINT`];
   const ACCESS_KEY_ID = process.env[`${PREFIX}_ACCESS_KEY_ID`];
   const SECRET_KEY = process.env[`${PREFIX}_SECRET_KEY`];
   const DEFAULT_REGION = process.env[`${PREFIX}_DEFAULT_REGION`];
-
-  if (!PREFIX) {
-    throw new Error(`${prefix}_PREFIX must be defined`);
-  }
   if (!ENDPOINT || !ACCESS_KEY_ID || !SECRET_KEY) {
     throw new Error(`${PREFIX}_ENDPOINT, ${PREFIX}_ACCESS_KEY_ID and ${PREFIX}_SECRET_KEY must be defined`);
   }

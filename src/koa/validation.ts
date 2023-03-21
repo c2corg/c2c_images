@@ -1,6 +1,6 @@
 import type { File } from 'formidable';
 import type { Context } from 'koa';
-import { z, ZodObject, ZodRawShape } from 'zod';
+import { z, ZodObject, type ZodRawShape } from 'zod';
 import { API_SECRET_KEY, RESIZING_CONFIG } from '../config.js';
 
 export const keyRegex = new RegExp(
@@ -48,7 +48,7 @@ export const validate = <T extends ZodObject<ZodRawShape>>(
     formErrors.length
       ? `Missing parameters. Expected values are { ${Object.values(schema.keyof().enum).join(', ')} }`
       : Object.entries(fieldErrors)
-          .map(([parameter, message]) => `Bad parameter ${parameter}: ${message}.`)
+          .map(([parameter, message]) => `Bad parameter ${parameter}: ${message?.join(' ') || '(unknown error)'}.`)
           .join('\n')
   );
 };
