@@ -23,7 +23,7 @@ export interface ResizeConfig {
 // See documentation at http://www.imagemagick.org/Usage/resize
 // If set via env variable, should be in json format
 export const RESIZING_CONFIG: ResizeConfig[] = process.env['RESIZING_CONFIG']
-  ? JSON.parse(process.env['RESIZING_CONFIG'])
+  ? (JSON.parse(process.env['RESIZING_CONFIG']) as ResizeConfig[])
   : [
       { suffix: 'BI', convert: ['-thumbnail', '1500x1500>', '-quality', '90'] },
       { suffix: 'MI', convert: ['-thumbnail', '400x400>', '-quality', '90'] },

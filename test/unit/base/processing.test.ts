@@ -18,7 +18,7 @@ describe('Processing', () => {
     for (const key of RASTER_IMAGES) {
       await copyTestImageToTempStorage(key);
       for (const config of RESIZING_CONFIG) {
-        createThumbnail(tempStorage.path(), key, config);
+        await createThumbnail(tempStorage.path(), key, config);
         expect(fs.existsSync(tempStorage.path(key))).toBe(true);
       }
     }

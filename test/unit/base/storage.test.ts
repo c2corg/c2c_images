@@ -35,7 +35,7 @@ describe('Local storage', () => {
     expect(await activeStorage.exists(key)).toBe(false);
 
     // delete a file that does not exist
-    expect(activeStorage.delete('does_not_exist.jpg')).rejects.toThrow();
+    await expect(activeStorage.delete('does_not_exist.jpg')).rejects.toThrow();
   });
 
   test('Rotating protocol', async () => {

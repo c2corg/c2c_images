@@ -54,7 +54,7 @@ describe('POST /rotate', () => {
       .post('/rotate')
       .send({ secret: 'my secret', filename: `${key}.png`, rotation: '-90' });
 
-    const { success, filename } = JSON.parse(response.text);
+    const { success, filename } = JSON.parse(response.text) as { success: boolean; filename: string };
     const { name: newKey, ext: newExt } = path.parse(filename);
     expect(success).toBe(true);
     expect(keyRegex.test(filename)).toBe(true);

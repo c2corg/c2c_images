@@ -18,8 +18,8 @@ describe('POST /delete', () => {
 
   test('deletes one file', async () => {
     const key = generateUniqueKeyPrefix();
-    activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
-    activeStorage.put(`${key}SI.jpg`, 'test/data/violin.jpg');
+    await activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
+    await activeStorage.put(`${key}SI.jpg`, 'test/data/violin.jpg');
     const response = await request(koa.callback())
       .post('/delete')
       .send({ secret: 'my secret', filenames: `${key}.jpg` });
@@ -32,8 +32,8 @@ describe('POST /delete', () => {
   test('deletes several files', async () => {
     const key1 = generateUniqueKeyPrefix();
     const key2 = generateUniqueKeyPrefix();
-    activeStorage.put(`${key1}.jpg`, 'test/data/violin.jpg');
-    activeStorage.put(`${key2}.jpg`, 'test/data/violin.jpg');
+    await activeStorage.put(`${key1}.jpg`, 'test/data/violin.jpg');
+    await activeStorage.put(`${key2}.jpg`, 'test/data/violin.jpg');
     const response = await request(koa.callback())
       .post('/delete')
       .send({ secret: 'my secret', filenames: [`${key1}.jpg`, `${key2}.jpg`] });

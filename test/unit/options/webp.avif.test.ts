@@ -14,7 +14,7 @@ describe('Asynchronous generation of Webp and Avif enabled', () => {
     async () => {
       const response = await request(koa.callback()).post('/upload').attach('file', 'test/data/violin.jpg');
       expect(response.status).toBe(200);
-      const { filename: key } = JSON.parse(response.text);
+      const { filename: key } = JSON.parse(response.text) as { filename: string };
 
       expect(baseThumbnailKeys(key).length).toBe(3);
       // not all environments will support webp and avif, take it into account

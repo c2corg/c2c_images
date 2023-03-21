@@ -48,7 +48,7 @@ describe('POST /upload', () => {
   test('uploads the file and thumbnails to incoming bucket', async () => {
     const response = await request(koa.callback()).post('/upload').attach('file', 'test/data/violin.jpg');
     expect(response.status).toBe(200);
-    const { filename: key } = JSON.parse(response.text);
+    const { filename: key } = JSON.parse(response.text) as { filename: string };
     expect(await incomingStorage.exists(key)).toBe(true);
     expect(allThumbnailKeys(key).length).toBe(3); // no webp or avif
     for (const resizedKey of allThumbnailKeys(key)) {
@@ -59,7 +59,7 @@ describe('POST /upload', () => {
   test('svg case', async () => {
     const response = await request(koa.callback()).post('/upload').attach('file', 'test/data/pipe_organ.svg');
     expect(response.status).toBe(200);
-    const { filename: key } = JSON.parse(response.text);
+    const { filename: key } = JSON.parse(response.text) as { filename: string };
     expect(await incomingStorage.exists(key)).toBe(true);
     expect(allThumbnailKeys(key).length).toBe(3);
     for (const resizedKey of allThumbnailKeys(key)) {

@@ -1,4 +1,4 @@
-import { ErrorCallback, retry } from 'async';
+import { retry, type ErrorCallback } from 'async';
 import type { Server } from 'node:http';
 import { DISABLE_PROMETHEUS_METRICS, METRICS_PATH, METRICS_PORT, SERVICE_PORT } from './config.js';
 import { fileCmdExists } from './exec/file.js';
@@ -11,7 +11,7 @@ import {
 import { rsvgConvertVersion } from './exec/librsvg.js';
 import { koa } from './koa/app.js';
 import { log } from './log.js';
-import { metricsServer } from './metrics/metrics.js';
+import { metricsKoa } from './metrics/metrics.js';
 
 const closeServer = async (server: Server): Promise<void> => {
   const checkPendingRequests = (callback: ErrorCallback<Error | undefined>): void => {
@@ -59,15 +59,17 @@ log.info(`Avif write is ${isAvifWriteSupported ? '' : 'un'}supported`);
 log.info(`Svg read is ${isSvgReadSupported ? '' : 'un'}supported`);
 log.info(`Using ${fileCmdExists ? 'file' : 'imagemagick'} to detect file formats`);
 
+const servers: Server[] = [];
+
 // Listen for REST request
-const server = koa.listen(SERVICE_PORT);
+servers.push(koa.listen(SERVICE_PORT));
 log.info(`Service starting on port ${SERVICE_PORT}`);
 
 // Export metrics for prometheus
 if (!DISABLE_PROMETHEUS_METRICS) {
-  metricsServer.listen(METRICS_PORT);
+  servers.push(metricsKoa.listen(METRICS_PORT));
   log.info(`Prometheus metrics can be scrapped at port ${METRICS_PORT} path ${METRICS_PATH}`);
 }
 
-process.once('SIGINT', async (signal: string) => closeGracefully(signal, server, metricsServer));
-process.once('SIGTERM', async (signal: string) => closeGracefully(signal, server, metricsServer));
+process.once('SIGINT', (signal: string) => void closeGracefully(signal, ...servers));
+process.once('SIGTERM', (signal: string) => void closeGracefully(signal, ...servers));

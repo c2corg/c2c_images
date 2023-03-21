@@ -18,11 +18,11 @@
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "importsNotUsedAsValues": "error",
     "checkJs": true,
     "removeComments": true,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
+    "verbatimModuleSyntax": true,
     "outDir": "dist",
     "rootDir": "src"
   },

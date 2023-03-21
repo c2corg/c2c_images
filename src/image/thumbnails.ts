@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { GENERATE_AVIF, GENERATE_WEBP, ResizeConfig, RESIZING_CONFIG } from '../config.js';
+import { GENERATE_AVIF, GENERATE_WEBP, RESIZING_CONFIG, type ResizeConfig } from '../config.js';
 import { isAvifWriteSupported, isWebpWriteSupported, transform } from '../exec/imagemagick.js';
 import { rasterizeSvg } from '../exec/librsvg.js';
 import { log } from '../log.js';
@@ -38,7 +38,7 @@ export const createThumbnail = async (
   const resizedPath = path.join(dir, thumbnailKey(originalKey, config.suffix, format));
   const resizeConfig = config.convert;
 
-  log.info(`Creating resized image ${resizedPath} with options ${resizeConfig}`);
+  log.info(`Creating resized image ${resizedPath} with options ${resizeConfig.join(' ')}`);
   const end = imageGenerationsHistogram.startTimer({ format: resizedPath.split('.').pop(), size: config.suffix });
   await transform(originalPath, resizedPath, resizeConfig);
   end();
