@@ -1,10 +1,11 @@
 import os from 'node:os';
 import yn from 'yn';
+import { z } from 'zod';
 
 export const SERVICE_NAME = 'c2c_images';
 
-export const SERVICE_PORT = process.env['SERVICE_PORT'] || 8080;
-export const METRICS_PORT = process.env['METRICS_PORT'] || 8081;
+export const SERVICE_PORT = Number.parseInt(process.env['SERVICE_PORT'] || '') || 8080;
+export const METRICS_PORT = Number.parseInt(process.env['METRICS_PORT'] || '') || 8081;
 export const METRICS_PATH = process.env['METRICS_PATH'] || '/metrics';
 export const DISABLE_PROMETHEUS_METRICS = yn(process.env['DISABLE_PROMETHEUS_METRICS'], { default: false });
 
@@ -16,14 +17,15 @@ if (!process.env['STORAGE_BACKEND']) {
 export const STORAGE_BACKEND = process.env['STORAGE_BACKEND'];
 export const TEMP_FOLDER = process.env['TEMP_FOLDER'] || `${os.tmpdir()}/images/temp`;
 
-export interface ResizeConfig {
-  suffix: string;
-  convert: string[];
-}
 // See documentation at http://www.imagemagick.org/Usage/resize
-// If set via env variable, should be in json format
+// If set via environment variable, should be in json format
+const ResizeConfig = z.object({
+  suffix: z.string(),
+  convert: z.string().array()
+});
+export type ResizeConfig = z.infer<typeof ResizeConfig>;
 export const RESIZING_CONFIG: ResizeConfig[] = process.env['RESIZING_CONFIG']
-  ? (JSON.parse(process.env['RESIZING_CONFIG']) as ResizeConfig[])
+  ? z.array(ResizeConfig).parse(JSON.parse(process.env['RESIZING_CONFIG']))
   : [
       { suffix: 'BI', convert: ['-thumbnail', '1500x1500>', '-quality', '90'] },
       { suffix: 'MI', convert: ['-thumbnail', '400x400>', '-quality', '90'] },
