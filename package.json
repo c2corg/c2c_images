@@ -30,7 +30,7 @@
   "devDependencies": {
     "@types/async": "3.2.20",
     "@types/command-exists": "1.2.0",
-    "@types/cross-spawn": "6.0.2",
+    "@types/cross-spawn": "6.0.3",
     "@types/debug": "4.1.8",
     "@types/jest": "29.5.2",
     "@types/koa": "2.13.8",
