@@ -62,7 +62,7 @@
     "debug": "4.3.4",
     "koa": "2.15.0",
     "koa-body": "6.0.1",
-    "prom-client": "15.0.0",
+    "prom-client": "15.1.0",
     "sanitize-filename": "1.6.3",
     "yn": "5.0.0",
     "zod": "3.22.4"
