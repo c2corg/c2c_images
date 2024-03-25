@@ -33,7 +33,7 @@
     "@types/cross-spawn": "6.0.6",
     "@types/debug": "4.1.12",
     "@types/jest": "29.5.12",
-    "@types/koa": "2.14.0",
+    "@types/koa": "2.15.0",
     "@types/koa__cors": "5.0.0",
     "@types/koa__router": "12.0.4",
     "@types/node": "20.11.20",
