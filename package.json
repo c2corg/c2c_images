@@ -12,7 +12,7 @@
     "test:ci": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.ci.mjs --runInBand",
     "test:base": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "clean:incoming": "node ./dist/scripts/clean.js",
-    "prepare": "husky install",
+    "prepare": "husky",
     "preversion": "npm run build && npm run lint && npm run test",
     "postversion": "git push --follow-tags --no-verify"
   },
