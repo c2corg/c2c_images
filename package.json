@@ -65,6 +65,6 @@
     "prom-client": "15.1.2",
     "sanitize-filename": "1.6.3",
     "yn": "5.0.0",
-    "zod": "3.23.4"
+    "zod": "3.23.8"
   }
 }
