@@ -59,7 +59,7 @@
     "async": "3.2.6",
     "command-exists": "1.2.9",
     "cross-spawn": "7.0.3",
-    "debug": "4.3.7",
+    "debug": "4.4.0",
     "koa": "2.15.3",
     "koa-body": "6.0.1",
     "prom-client": "15.1.3",
