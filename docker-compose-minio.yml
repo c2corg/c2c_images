@@ -26,10 +26,18 @@ services:
       - minio
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc alias set myminio http://minio:9000 minio miniosecret;
-      /usr/bin/mc mb myminio/active;
-      /usr/bin/mc mb myminio/incoming;
+      set -e;
+
+      echo 'Waiting for MinIO...';
+      until /usr/bin/mc alias set myminio http://minio:9000 minio miniosecret; do
+        sleep 2;
+      done;
+
+      echo 'Creating buckets...';
+      /usr/bin/mc mb -p myminio/active || true;
+      /usr/bin/mc mb -p myminio/incoming || true;
       /usr/bin/mc anonymous set download myminio/active;
       /usr/bin/mc anonymous set none myminio/incoming;
-      exit 0;
+
+      echo 'MinIO buckets initialized.';
       "
