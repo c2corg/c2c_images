@@ -1,6 +1,4 @@
-// eslint-disable-next-line n/no-extraneous-import -- formidable comes with koa-body, both go with the switch to Express
-import type { File } from 'formidable';
-import type { Context } from 'koa';
+import createHttpError from 'http-errors';
 import { z, type ZodObject, type ZodRawShape } from 'zod';
 
 import { API_SECRET_KEY, RESIZING_CONFIG } from '../config.js';
@@ -17,8 +15,8 @@ export const ApiSecret = z.object({
   secret: z.string().refine(value => value === API_SECRET_KEY)
 });
 
-export const UploadFiles = z.object<{ file: z.ZodType<File> }>({
-  file: z.any().refine((value: File) => value.size > 0)
+export const UploadFiles = z.object<{ file: z.ZodType<Express.Multer.File> }>({
+  file: z.any().refine((value: Express.Multer.File) => value.size > 0)
 });
 
 export const PublishBody = z.object({
@@ -36,18 +34,14 @@ export const RotateBody = z.object({
   filename: FilenameSchema
 });
 
-export const validate = <T extends ZodObject<ZodRawShape>>(
-  ctx: Context,
-  schema: T,
-  property: 'files' | 'body' = 'body'
-): z.infer<T> => {
-  const result = schema.safeParse(ctx.request[property]);
+export const validate = <T extends ZodObject<ZodRawShape>>(input: unknown, schema: T): z.infer<T> => {
+  const result = schema.safeParse(input);
   if (result.success) {
     return result.data;
   }
 
   const { fieldErrors, formErrors } = result.error.flatten();
-  ctx.throw(
+  throw createHttpError(
     400,
     formErrors.length
       ? `Missing parameters. Expected values are { ${Object.values(schema.keyof().enum).join(', ')} }`

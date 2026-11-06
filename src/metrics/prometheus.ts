@@ -1,4 +1,4 @@
-import type Koa from 'koa';
+import type { RequestHandler } from 'express';
 import { collectDefaultMetrics, Counter, exponentialBuckets, Gauge, Histogram, register } from 'prom-client';
 
 import { DISABLE_PROMETHEUS_METRICS, SERVICE_NAME } from '../config.js';
@@ -17,21 +17,23 @@ const promHttpRequests = new Histogram({
   labelNames: ['method', 'code', 'endpoint'] as const
 });
 
-export const promHttpReporter: Koa.Middleware = async (ctx, next) => {
+export const promHttpReporter: RequestHandler = (req, res, next) => {
   let endpoint: string;
-  switch (ctx.path) {
+  switch (req.path) {
     case '/ping':
     case '/upload':
     case '/publish':
     case '/delete':
-      endpoint = ctx.path.substring(1);
+      endpoint = req.path.substring(1);
       break;
     default:
       endpoint = 'notfound';
   }
-  const end = promHttpRequests.startTimer({ method: ctx.method, endpoint });
-  await next();
-  end({ code: ctx.status });
+  const end = promHttpRequests.startTimer({ method: req.method, endpoint });
+  res.on('finish', () => {
+    end({ code: res.statusCode });
+  });
+  next();
 };
 
 // errors counter

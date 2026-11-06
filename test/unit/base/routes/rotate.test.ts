@@ -3,28 +3,28 @@ import path from 'node:path';
 import request from 'supertest';
 import { describe, expect, test } from 'vitest';
 
+import { app } from '../../../../src/http/app.js';
+import { generateUniqueKeyPrefix } from '../../../../src/http/utils.js';
+import { keyRegex } from '../../../../src/http/validation.js';
 import { getFileSize } from '../../../../src/image/filesize.js';
 import { allThumbnailKeys, baseThumbnailKeys } from '../../../../src/image/thumbnails.js';
-import { koa } from '../../../../src/koa/app.js';
-import { generateUniqueKeyPrefix } from '../../../../src/koa/utils.js';
-import { keyRegex } from '../../../../src/koa/validation.js';
 import { activeStorage, tempStorage } from '../../../../src/storage/storage.js';
 
 describe('POST /rotate', () => {
   test('requires api secret', async () => {
-    const response = await request(koa.callback()).post('/rotate').send({ secret: 'bad secret' });
+    const response = await request(app).post('/rotate').send({ secret: 'bad secret' });
     expect(response.text).toBe('Bad secret key.');
     expect(response.status).toBe(403);
   });
 
   test('expects a key', async () => {
-    const response = await request(koa.callback()).post('/rotate').send({ secret: 'my secret' });
+    const response = await request(app).post('/rotate').send({ secret: 'my secret' });
     expect(response.text).toBe('Bad parameter filename: Required.');
     expect(response.status).toBe(400);
   });
 
   test('refuses to rotate SVG', async () => {
-    const response = await request(koa.callback())
+    const response = await request(app)
       .post('/rotate')
       .send({ secret: 'my secret', filename: '1234567890_1234567890.svg' });
     expect(response.text).toBe('SVG images rotation is not supported.');
@@ -32,7 +32,7 @@ describe('POST /rotate', () => {
   });
 
   test('refuses invalid rotation angle', async () => {
-    const response = await request(koa.callback())
+    const response = await request(app)
       .post('/rotate')
       .send({ secret: 'my secret', filename: '1234567890_1234567890.jpg', rotation: '45' });
     expect(response.text).toBe(
@@ -42,7 +42,7 @@ describe('POST /rotate', () => {
   });
 
   test('checks that the image is published', async () => {
-    const response = await request(koa.callback())
+    const response = await request(app)
       .post('/rotate')
       .send({ secret: 'my secret', filename: '1234567890_1234567890.jpg', rotation: '-90' });
     expect(response.text).toBe('Not found');
@@ -53,7 +53,7 @@ describe('POST /rotate', () => {
     const key = generateUniqueKeyPrefix();
     await activeStorage.put(`${key}.png`, 'test/data/piano.png');
     await activeStorage.put(`${key}BI.png`, 'test/data/piano.png');
-    const response = await request(koa.callback())
+    const response = await request(app)
       .post('/rotate')
       .send({ secret: 'my secret', filename: `${key}.png`, rotation: '-90' });
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
-import { generateUniqueKeyPrefix } from '../../../src/koa/utils.js';
-import { keyRegex } from '../../../src/koa/validation.js';
+import { generateUniqueKeyPrefix } from '../../../src/http/utils.js';
+import { keyRegex } from '../../../src/http/validation.js';
 
 describe('Key validation', () => {
   test('regex', () => {

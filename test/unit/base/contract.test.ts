@@ -7,10 +7,8 @@ import net from 'node:net';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
-import { koa } from '../../../src/koa/app.js';
+import { app } from '../../../src/http/app.js';
 import { activeStorage, incomingStorage } from '../../../src/storage/storage.js';
-
-const app = koa.callback();
 
 // a raw request, as HAProxy's health check sends it (HTTP/1.0, no Host header)
 const rawRequest = async (port: number, payload: string): Promise<string> => {

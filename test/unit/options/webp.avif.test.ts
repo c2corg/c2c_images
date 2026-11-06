@@ -3,9 +3,9 @@ import { describe, expect, test } from 'vitest';
 
 import { THUMBNAILS_PUBLISH_DELAY } from '../../../src/config.js';
 import { isAvifWriteSupported, isWebpWriteSupported } from '../../../src/exec/imagemagick.js';
+import { app } from '../../../src/http/app.js';
+import { generateUniqueKeyPrefix } from '../../../src/http/utils.js';
 import { baseThumbnailKeys, modernThumbnailKeys } from '../../../src/image/thumbnails.js';
-import { koa } from '../../../src/koa/app.js';
-import { generateUniqueKeyPrefix } from '../../../src/koa/utils.js';
 import { activeStorage, incomingStorage } from '../../../src/storage/storage.js';
 
 const MAX_MODERN_GENERATION_TIME = 10000;
@@ -14,7 +14,7 @@ describe('Asynchronous generation of Webp and Avif enabled', () => {
   test(
     'POST /upload will also generate "modern" thumbnails, asynchronously',
     async () => {
-      const response = await request(koa.callback()).post('/upload').attach('file', 'test/data/violin.jpg');
+      const response = await request(app).post('/upload').attach('file', 'test/data/violin.jpg');
       expect(response.status).toBe(200);
       const { filename: key } = JSON.parse(response.text) as { filename: string };
 
@@ -46,7 +46,7 @@ describe('Asynchronous generation of Webp and Avif enabled', () => {
       const key = generateUniqueKeyPrefix();
       await activeStorage.put(`${key}.png`, 'test/data/piano.png');
       await activeStorage.put(`${key}BI.png`, 'test/data/piano.png');
-      const response = await request(koa.callback())
+      const response = await request(app)
         .post('/rotate')
         .send({ secret: 'my secret', filename: `${key}.png`, rotation: '90' });
 
@@ -86,7 +86,7 @@ describe('Asynchronous generation of Webp and Avif enabled', () => {
       await incomingStorage.put(`${key}BI.png`, 'test/data/piano.png');
       await incomingStorage.put(`${key}BI.avif`, 'test/data/piano.png'); // we don't really care about the actual format
 
-      const response = await request(koa.callback())
+      const response = await request(app)
         .post('/publish')
         .send({ secret: 'my secret', filename: `${key}.png` });
 
