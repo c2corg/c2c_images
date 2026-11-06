@@ -37,12 +37,13 @@ export default defineConfig({
         }
       },
       {
-        // requires an S3 server, see docker-compose-minio.yml
+        // requires the S3 server of docker-compose.s3.yml
         extends: true,
         test: {
           name: 's3',
           include: ['test/unit/s3/**/*.test.ts'],
-          setupFiles: ['test/environment/env-vars.s3.js']
+          setupFiles: ['test/environment/env-vars.s3.js'],
+          globalSetup: ['test/environment/s3-global-setup.ts']
         }
       }
     ]

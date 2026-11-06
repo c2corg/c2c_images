@@ -9,6 +9,11 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+  # the image of the test S3 server (docker-compose.s3.yml, pinned by digest)
+  - package-ecosystem: docker-compose
+    directory: '/'
+    schedule:
+      interval: 'weekly'
   - package-ecosystem: github-actions
     directory: '/'
     schedule:

@@ -1,0 +1,14 @@
+# S3 server for the tests of the S3 storage (npm run test:all): Scality CloudServer, in memory. It applies the
+# per-object ACLs and serves public objects anonymously, as Exoscale SOS does in production. The buckets are created
+# by the tests (test/environment/s3-global-setup.ts).
+services:
+  s3:
+    image: ghcr.io/scality/cloudserver:9.5.2@sha256:17c40edbb0f10fd47d984dfc106268d4197f6190c7dd8957f7d23d3bc090ef2a
+    environment:
+      S3BACKEND: mem
+      REMOTE_MANAGEMENT_DISABLE: '1'
+      # the credentials of test/environment/env-vars.s3.js
+      SCALITY_ACCESS_KEY_ID: images-access-key
+      SCALITY_SECRET_ACCESS_KEY: images-secret-key
+    ports:
+      - 9000:8000

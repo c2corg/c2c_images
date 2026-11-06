@@ -12,7 +12,7 @@ module.exports = {
     'plugin:@typescript-eslint/recommended-requiring-type-checking',
     'prettier'
   ],
-  ignorePatterns: ['*.cjs', '*.mjs', 'test/environment', 'vitest.config.ts'],
+  ignorePatterns: ['*.cjs', '*.mjs', 'test/environment', 'vitest.config.ts', 'test/environment/s3-global-setup.ts'],
   rules: {
     '@typescript-eslint/no-import-type-side-effects': 'error'
   }
