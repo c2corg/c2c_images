@@ -58,4 +58,20 @@ describe('POST /publish', () => {
     expect(await activeStorage.exists(`${key}.jpg`)).toBe(true);
     expect(await activeStorage.exists(`${key}BI.jpg`)).toBe(true);
   });
+
+  // as v6_api sends it: form encoded, key of v6_images
+  test('publish a v6_images image, form encoded', async () => {
+    const key = '1588000002_98765';
+    await incomingStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
+    await incomingStorage.put(`${key}MI.jpg`, 'test/data/violin.jpg');
+    const response = await request(koa.callback())
+      .post('/publish')
+      .type('form')
+      .send(`secret=my+secret&filename=${key}.jpg`);
+    expect(JSON.parse(response.text)).toEqual({ success: true });
+    expect(response.status).toBe(200);
+    expect(await activeStorage.exists(`${key}.jpg`)).toBe(true);
+    expect(await activeStorage.exists(`${key}MI.jpg`)).toBe(true);
+    expect(await incomingStorage.exists(`${key}.jpg`)).toBe(false);
+  });
 });

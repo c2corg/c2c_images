@@ -43,4 +43,36 @@ describe('POST /delete', () => {
     expect(await activeStorage.exists(`${key1}.jpg`)).toBe(false);
     expect(await activeStorage.exists(`${key2}.jpg`)).toBe(false);
   });
+
+  // as v6_api sends it: form encoded, `filenames` repeated, keys of v6_images
+  test('deletes v6_images files, form encoded', async () => {
+    const keys = ['1588000000_123456', '1588000001_7'];
+    for (const key of keys) {
+      await activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
+      await activeStorage.put(`${key}BI.jpg`, 'test/data/violin.jpg');
+    }
+    const response = await request(koa.callback())
+      .post('/delete')
+      .type('form')
+      .send(`secret=my+secret&filenames=${keys[0]}.jpg&filenames=${keys[1]}.jpg`);
+    expect(JSON.parse(response.text)).toEqual({ success: true });
+    expect(response.status).toBe(200);
+    for (const key of keys) {
+      expect(await activeStorage.exists(`${key}.jpg`)).toBe(false);
+      expect(await activeStorage.exists(`${key}BI.jpg`)).toBe(false);
+    }
+  });
+
+  // as v6_images: the archives of a document may list files that no longer exist
+  test('deletes the existing files when some are missing', async () => {
+    const key = generateUniqueKeyPrefix();
+    await activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
+    const response = await request(koa.callback())
+      .post('/delete')
+      .type('form')
+      .send(`secret=my+secret&filenames=1588000000_404.jpg&filenames=${key}.jpg`);
+    expect(JSON.parse(response.text)).toEqual({ success: true });
+    expect(response.status).toBe(200);
+    expect(await activeStorage.exists(`${key}.jpg`)).toBe(false);
+  });
 });

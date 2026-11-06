@@ -143,11 +143,7 @@ router.post('/publish', bodyParser, apiOnly, async ctx => {
 router.post('/delete', bodyParser, apiOnly, async ctx => {
   const { filenames: keys } = validate(ctx, DeleteBody);
 
-  const allPublished = await Promise.all(keys.map(key => activeStorage.exists(key)));
-  if (!allPublished) {
-    ctx.throw(404);
-  }
-
+  // as v6_images: no check that the files exist, the archives of a document may list files deleted since
   await Promise.all(
     keys
       .flatMap(key => [key, ...allThumbnailKeys(key)])
