@@ -1,4 +1,5 @@
 import type Koa from 'koa';
+
 import { ApiSecret } from './validation.js';
 
 /**

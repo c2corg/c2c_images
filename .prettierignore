@@ -1,0 +1,5 @@
+dist/
+reports/
+coverage/
+package-lock.json
+test/data/

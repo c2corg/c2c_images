@@ -1,6 +1,7 @@
 import Router from '@koa/router';
 import Koa from 'koa';
 import { register } from 'prom-client';
+
 import { METRICS_PATH } from '../config.js';
 
 const koa = new Koa();

@@ -1,6 +1,8 @@
+// eslint-disable-next-line n/no-extraneous-import -- formidable comes with koa-body, both go with the switch to Express
 import type { File } from 'formidable';
 import type { Context } from 'koa';
-import { z, ZodObject, type ZodRawShape } from 'zod';
+import { z, type ZodObject, type ZodRawShape } from 'zod';
+
 import { API_SECRET_KEY, RESIZING_CONFIG } from '../config.js';
 
 // <seconds since epoch>_<random number>, optionally a thumbnail suffix. The random number is not zero padded in the
@@ -38,10 +40,10 @@ export const validate = <T extends ZodObject<ZodRawShape>>(
   ctx: Context,
   schema: T,
   property: 'files' | 'body' = 'body'
-) => {
+): z.infer<T> => {
   const result = schema.safeParse(ctx.request[property]);
   if (result.success) {
-    return result.data as z.infer<T>;
+    return result.data;
   }
 
   const { fieldErrors, formErrors } = result.error.flatten();

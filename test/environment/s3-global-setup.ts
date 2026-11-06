@@ -1,5 +1,6 @@
-import { BucketAlreadyOwnedByYou, CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
 import { setTimeout as sleep } from 'node:timers/promises';
+
+import { BucketAlreadyOwnedByYou, CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
 
 // the buckets and credentials of env-vars.s3.js
 const BUCKETS = ['incoming', 'active'];

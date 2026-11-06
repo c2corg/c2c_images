@@ -1,7 +1,9 @@
-import Router from '@koa/router';
-import { koaBody } from 'koa-body';
 import fs from 'node:fs';
 import path from 'node:path';
+
+import Router from '@koa/router';
+import { koaBody } from 'koa-body';
+
 import { AUTO_ORIENT_ORIGINAL, THUMBNAILS_PUBLISH_DELAY } from '../config.js';
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
@@ -17,6 +19,7 @@ import {
   promUploadedImagesCounter
 } from '../metrics/prometheus.js';
 import { activeStorage, incomingStorage, tempStorage } from '../storage/storage.js';
+
 import { apiOnly } from './apionly.js';
 import { generateUniqueKeyPrefix } from './utils.js';
 import { DeleteBody, PublishBody, RotateBody, UploadFiles, validate } from './validation.js';
@@ -35,10 +38,10 @@ router.post('/upload', bodyParser, async ctx => {
   const keyPrefix = generateUniqueKeyPrefix();
   const { file } = validate(ctx, UploadFiles, 'files');
 
-  const uploadImage = (key: string) => tempStorage.move(key, incomingStorage);
-  const uploadOriginalAndBaseThumbnails = (key: string) =>
+  const uploadImage = async (key: string): Promise<void> => tempStorage.move(key, incomingStorage);
+  const uploadOriginalAndBaseThumbnails = async (key: string): Promise<void[]> =>
     Promise.all([tempStorage.copy(key, incomingStorage), ...baseThumbnailKeys(key).map(uploadImage)]);
-  const uploadModernThumbnails = (key: string) =>
+  const uploadModernThumbnails = async (key: string): Promise<void[]> =>
     Promise.all([tempStorage.delete(key), ...modernThumbnailKeys(key).map(uploadImage)]);
 
   let format: string;

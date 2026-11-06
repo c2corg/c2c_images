@@ -1,5 +1,6 @@
-import { describe, expect, test } from 'vitest';
 import request from 'supertest';
+import { describe, expect, test } from 'vitest';
+
 import { THUMBNAILS_PUBLISH_DELAY } from '../../../src/config.js';
 import { isAvifWriteSupported, isWebpWriteSupported } from '../../../src/exec/imagemagick.js';
 import { baseThumbnailKeys, modernThumbnailKeys } from '../../../src/image/thumbnails.js';

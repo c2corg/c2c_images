@@ -1,4 +1,5 @@
 import debug from 'debug';
+
 import { SERVICE_NAME } from './config.js';
 
 class Log {

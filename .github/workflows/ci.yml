@@ -28,7 +28,7 @@ jobs:
       - name: npm install, lint and build
         run: |
           npm ci
-          npm run lint:ci
+          npm run lint
           npm run build
       - name: Run an S3 server for testing s3
         run: docker compose -f docker-compose.s3.yml up -d s3

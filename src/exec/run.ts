@@ -1,4 +1,5 @@
 import spawn from 'cross-spawn';
+
 import { log } from '../log.js';
 
 export const runSync = (command: string, args: string[]): string => {

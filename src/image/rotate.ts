@@ -2,12 +2,14 @@ import { transform } from '../exec/imagemagick.js';
 import { log } from '../log.js';
 import { imageRotationsHistogram } from '../metrics/prometheus.js';
 import { activeStorage, tempStorage } from '../storage/storage.js';
+
 import { allThumbnailKeys, baseThumbnailKeys, createThumbnails, modernThumbnailKeys } from './thumbnails.js';
 
-const uploadImage = (key: string) => tempStorage.move(key, activeStorage);
-const uploadOriginalAndBaseThumbnails = (key: string) =>
-  Promise.all([tempStorage.copy(key, activeStorage), baseThumbnailKeys(key).map(uploadImage)]);
-const uploadModernThumbnails = (key: string) => modernThumbnailKeys(key).map(uploadImage);
+const uploadImage = async (key: string): Promise<void> => tempStorage.move(key, activeStorage);
+const uploadOriginalAndBaseThumbnails = async (key: string): Promise<void[]> =>
+  Promise.all([tempStorage.copy(key, activeStorage), ...baseThumbnailKeys(key).map(uploadImage)]);
+const uploadModernThumbnails = async (key: string): Promise<void[]> =>
+  Promise.all(modernThumbnailKeys(key).map(uploadImage));
 
 export const rotateImages = async (originalKey: string, newKey: string, rotation: string): Promise<void> => {
   await activeStorage.copy(originalKey, tempStorage);

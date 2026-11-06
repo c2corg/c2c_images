@@ -1,19 +1,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
+
 import { GENERATE_AVIF, GENERATE_WEBP, RESIZING_CONFIG, type ResizeConfig } from '../config.js';
 import { isAvifWriteSupported, isWebpWriteSupported, transform } from '../exec/imagemagick.js';
 import { rasterizeSvg } from '../exec/librsvg.js';
 import { log } from '../log.js';
 import { imageGenerationsHistogram } from '../metrics/prometheus.js';
 
-const thumbnailKey = (key: string, suffix: string, format?: string) => {
+const thumbnailKey = (key: string, suffix: string, format?: string): string => {
   const { ext, name } = path.parse(key);
-  return `${name}${suffix}${ext === '.svg' ? '.jpg' : format ?? ext}`;
+  return `${name}${suffix}${ext === '.svg' ? '.jpg' : (format ?? ext)}`;
 };
 
-export const baseThumbnailKeys = (key: string) => RESIZING_CONFIG.flatMap(config => [thumbnailKey(key, config.suffix)]);
+export const baseThumbnailKeys = (key: string): string[] =>
+  RESIZING_CONFIG.flatMap(config => [thumbnailKey(key, config.suffix)]);
 
-export const modernThumbnailKeys = (key: string) =>
+export const modernThumbnailKeys = (key: string): string[] =>
   RESIZING_CONFIG.flatMap(config => {
     const keys: string[] = [];
     if (GENERATE_AVIF && isAvifWriteSupported) {
@@ -26,7 +28,7 @@ export const modernThumbnailKeys = (key: string) =>
     return keys;
   });
 
-export const allThumbnailKeys = (key: string) => [...baseThumbnailKeys(key), ...modernThumbnailKeys(key)];
+export const allThumbnailKeys = (key: string): string[] => [...baseThumbnailKeys(key), ...modernThumbnailKeys(key)];
 
 export const createThumbnail = async (
   dir: string,
@@ -39,7 +41,7 @@ export const createThumbnail = async (
   const resizeConfig = config.convert;
 
   log.info(`Creating resized image ${resizedPath} with options ${resizeConfig.join(' ')}`);
-  const end = imageGenerationsHistogram.startTimer({ format: resizedPath.split('.').pop(), size: config.suffix });
+  const end = imageGenerationsHistogram.startTimer({ format: path.extname(resizedPath).slice(1), size: config.suffix });
   await transform(originalPath, resizedPath, resizeConfig);
   end();
 };

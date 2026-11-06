@@ -1,7 +1,7 @@
 FROM node:lts-bullseye-slim AS build
 RUN apt-get update && apt-get install -y --no-install-recommends dumb-init
 WORKDIR /usr
-COPY package.json package-lock.json tsconfig.json ./
+COPY package.json package-lock.json tsconfig.json tsconfig.build.json ./
 RUN npm ci --fund=false
 COPY src ./src
 RUN npm run build

@@ -1,5 +1,7 @@
-import { beforeAll, describe, expect, test } from 'vitest';
 import fs from 'node:fs';
+
+import { beforeAll, describe, expect, test } from 'vitest';
+
 import { generateUniqueKeyPrefix } from '../../../src/koa/utils.js';
 import { LocalStorage, tempStorage } from '../../../src/storage/storage.js';
 
@@ -11,9 +13,8 @@ describe('Local storage', () => {
   let incomingStorage: LocalStorage;
   let activeStorage: LocalStorage;
   beforeAll(() => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     incomingStorage = new LocalStorage(process.env['INCOMING_FOLDER']!);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
     activeStorage = new LocalStorage(process.env['ACTIVE_FOLDER']!);
   });
 
