@@ -1,7 +1,9 @@
-import { beforeAll, describe, expect, test } from 'vitest';
-import { ObjectCannedACL } from '@aws-sdk/client-s3';
 import fs from 'node:fs';
+
+import { ObjectCannedACL } from '@aws-sdk/client-s3';
 import request from 'supertest';
+import { beforeAll, describe, expect, test } from 'vitest';
+
 import { generateUniqueKeyPrefix } from '../../../src/koa/utils.js';
 import { getS3Params, S3Storage, tempStorage } from '../../../src/storage/storage.js';
 
@@ -14,13 +16,12 @@ describe('S3 storage', () => {
   let activeStorage: S3Storage;
   beforeAll(() => {
     incomingStorage = new S3Storage(
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       process.env['INCOMING_BUCKET']!,
       getS3Params('INCOMING'),
       ObjectCannedACL.private,
       true
     );
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
     activeStorage = new S3Storage(process.env['ACTIVE_BUCKET']!, getS3Params('ACTIVE'), ObjectCannedACL.public_read);
   });
 

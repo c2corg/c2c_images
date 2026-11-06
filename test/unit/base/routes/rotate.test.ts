@@ -1,6 +1,8 @@
-import { describe, expect, test } from 'vitest';
 import path from 'node:path';
+
 import request from 'supertest';
+import { describe, expect, test } from 'vitest';
+
 import { getFileSize } from '../../../../src/image/filesize.js';
 import { allThumbnailKeys, baseThumbnailKeys } from '../../../../src/image/thumbnails.js';
 import { koa } from '../../../../src/koa/app.js';

@@ -1,3 +1,7 @@
+import fs, { constants, promises as fsPromises } from 'node:fs';
+import path from 'node:path';
+import type { Readable } from 'node:stream';
+
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
@@ -7,21 +11,19 @@ import {
   PutObjectCommand,
   S3Client
 } from '@aws-sdk/client-s3';
-import fs, { constants, promises as fsPromises } from 'node:fs';
-import path from 'node:path';
-import type { Readable } from 'node:stream';
 import sanitize from 'sanitize-filename';
+
 import { CACHE_CONTROL, S3_EXPIRE_HOURS, STORAGE_BACKEND, TEMP_FOLDER } from '../config.js';
 import { getMimeTypeFromKey } from '../image/filetype.js';
 
 export abstract class Storage {
-  abstract exists(key: string): Promise<boolean>;
-  abstract get(key: string): Promise<Buffer>;
-  abstract put(key: string, path: string): Promise<void>;
-  abstract delete(key: string): Promise<void>;
-  abstract copy(key: string, destinationStorage: Storage): Promise<void>;
-  abstract move(key: string, destinationStorage: Storage): Promise<void>;
-  abstract lastModified(key: string): Promise<Date | undefined>;
+  public abstract exists(key: string): Promise<boolean>;
+  public abstract get(key: string): Promise<Buffer>;
+  public abstract put(key: string, path: string): Promise<void>;
+  public abstract delete(key: string): Promise<void>;
+  public abstract copy(key: string, destinationStorage: Storage): Promise<void>;
+  public abstract move(key: string, destinationStorage: Storage): Promise<void>;
+  public abstract lastModified(key: string): Promise<Date | undefined>;
 }
 
 export class LocalStorage implements Storage {
@@ -34,7 +36,7 @@ export class LocalStorage implements Storage {
     }
   }
 
-  public path(key?: string) {
+  public path(key?: string): string {
     return key ? path.resolve(this.#baseDirectory, sanitize(key)) : this.#baseDirectory;
   }
 
@@ -205,7 +207,7 @@ export class S3Storage implements Storage {
   }
 }
 
-export const getS3Params = (prefix: string) => {
+export const getS3Params = (prefix: string): S3Params => {
   const PREFIX = process.env[`${prefix}_PREFIX`];
   if (!PREFIX) {
     throw new Error(`${prefix}_PREFIX must be defined`);
@@ -225,7 +227,7 @@ export const getS3Params = (prefix: string) => {
       secretAccessKey: SECRET_KEY
     },
     endpoint: ENDPOINT,
-    region: DEFAULT_REGION
+    ...(DEFAULT_REGION ? { region: DEFAULT_REGION } : {})
   };
 };
 

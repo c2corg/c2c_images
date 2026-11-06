@@ -1,6 +1,3 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
 if read local_ref local_sha remote_ref remote_sha; then
   if [ "$remote_ref" = "refs/heads/main" ]; then
     npm run lint && npm run build && npm run test

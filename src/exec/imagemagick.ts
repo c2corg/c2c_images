@@ -1,4 +1,5 @@
 import { sync as commandExists } from 'command-exists';
+
 import { runAsync, runSync } from './run.js';
 
 // 'magick' is the base command for version 7
@@ -7,7 +8,7 @@ import { runAsync, runSync } from './run.js';
 const useImageMagick7 = commandExists('magick');
 export const imageMagickCmdExists = useImageMagick7 || commandExists('identify');
 
-export const transform = async (originalFile: string, targetFile: string, options: string[]) =>
+export const transform = async (originalFile: string, targetFile: string, options: string[]): Promise<string> =>
   runAsync(useImageMagick7 ? 'magick' : 'convert', [originalFile, ...options, targetFile]);
 
 // We don't use -format option because it creates decode delegate error
@@ -32,7 +33,7 @@ export const identify = async (filename: string): Promise<{ format: string; widt
   }
 };
 
-export const imageMagickVersion = () => {
+export const imageMagickVersion = (): string | undefined => {
   if (!imageMagickCmdExists) {
     throw new Error('Imagemagick is required.');
   }

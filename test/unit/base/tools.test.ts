@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { fileCmdExists } from '../../../src/exec/file.js';
 import {
   imageMagickVersion,

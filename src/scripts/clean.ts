@@ -4,6 +4,7 @@
 // you face such issue.
 
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
+
 import { S3_EXPIRE_HOURS, STORAGE_BACKEND } from '../config.js';
 import { log } from '../log.js';
 import { getS3Params } from '../storage/storage.js';
@@ -20,7 +21,7 @@ const client = new S3Client({
 });
 
 let total = 0;
-let obsoleteKeys: string[] = [];
+let obsoleteKeys: string[];
 let end: string | undefined = undefined;
 
 do {
@@ -34,7 +35,7 @@ log.info(`${total} files have been deleted.`);
 async function getObsoleteFiles(
   bucket: string,
   startAfter?: string
-): Promise<{ obsoleteKeys: string[]; end?: string }> {
+): Promise<{ obsoleteKeys: string[]; end?: string | undefined }> {
   const { Contents } = await client.send(new ListObjectsV2Command({ Bucket: bucket, StartAfter: startAfter }));
 
   const end = Contents?.at(-1)?.Key;
@@ -42,7 +43,6 @@ async function getObsoleteFiles(
     Contents?.filter(
       ({ Key, LastModified }) =>
         Key && LastModified && LastModified.getTime() + S3_EXPIRE_HOURS * 1000 * 60 * 60 < Date.now()
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     ).map(({ Key }) => Key!) ?? [];
 
   return { obsoleteKeys: keys, end };

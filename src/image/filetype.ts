@@ -1,4 +1,5 @@
 import path from 'node:path';
+
 import { PREFER_IDENTIFY_OVER_FILE } from '../config.js';
 import { fileCmdExists, getMimeType } from '../exec/file.js';
 import { identify, isSvgReadSupported } from '../exec/imagemagick.js';

@@ -1,8 +1,10 @@
 import cors from '@koa/cors';
 import Koa, { HttpError, type Context } from 'koa';
+
 import { ALLOWED_ORIGINS } from '../config.js';
 import { log } from '../log.js';
 import { promErrorsCounter, promHttpReporter } from '../metrics/prometheus.js';
+
 import { router } from './routes.js';
 
 const koa = new Koa();
@@ -49,7 +51,7 @@ koa.use(async (ctx, next) => {
       ctx.throw(404);
     }
   } catch (error) {
-    const status = error instanceof HttpError ? error.status ?? error.statusCode : undefined;
+    const status = error instanceof HttpError ? (error.status ?? error.statusCode) : undefined;
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     let message = error instanceof HttpError ? error.message : `${error}`;
     if (status === 500 && !['development', 'demo'].includes(process.env['NODE_ENV'] ?? '')) {

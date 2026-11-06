@@ -1,6 +1,8 @@
-import { describe, expect, test } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+
+import { describe, expect, test } from 'vitest';
+
 import { RESIZING_CONFIG } from '../../../src/config.js';
 import { rasterizeSvg } from '../../../src/exec/librsvg.js';
 import { getFileFormat } from '../../../src/image/filetype.js';

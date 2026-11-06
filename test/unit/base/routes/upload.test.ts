@@ -1,5 +1,6 @@
-import { describe, expect, test } from 'vitest';
 import request from 'supertest';
+import { describe, expect, test } from 'vitest';
+
 import { allThumbnailKeys } from '../../../../src/image/thumbnails.js';
 import { koa } from '../../../../src/koa/app.js';
 import { incomingStorage } from '../../../../src/storage/storage.js';

@@ -1,5 +1,7 @@
-import { retry, type ErrorCallback } from 'async';
 import type { Server } from 'node:http';
+
+import { retry, type ErrorCallback } from 'async';
+
 import { DISABLE_PROMETHEUS_METRICS, METRICS_PATH, METRICS_PORT, SERVICE_PORT } from './config.js';
 import { fileCmdExists } from './exec/file.js';
 import {
