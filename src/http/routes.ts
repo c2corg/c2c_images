@@ -41,9 +41,12 @@ router.post('/upload', fileParser, async (req, res) => {
   try {
     res.json(await upload(req.file));
   } finally {
-    // the file received, if it was not renamed
+    // the file received, if it was not renamed. Multer names it in the temp folder; the check keeps any other path out.
     if (req.file) {
-      await fs.promises.rm(req.file.path, { force: true });
+      const received = path.resolve(TEMP_FOLDER, path.basename(req.file.path));
+      if (received.startsWith(path.resolve(TEMP_FOLDER) + path.sep)) {
+        await fs.promises.rm(received, { force: true });
+      }
     }
   }
 });
