@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import request from 'supertest';
 import { allThumbnailKeys } from '../../../../src/image/thumbnails.js';
 import { koa } from '../../../../src/koa/app.js';

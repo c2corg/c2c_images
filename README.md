@@ -188,11 +188,14 @@ expired images.
 
 You need `rsvg-convert` and `imagemagick` installed.
 
-Run unit tests via `npm run test`
+Tests use [Vitest](https://vitest.dev). Run the unit tests via `npm run test`,
+or `npm run test:watch` while developing.
 
-To include s3 tests, you need to run a local instance of minio via docker
-`docker-compose -f docker-compose-minio.yml up`.
-Then run all tests via `npm run test:all`.
+To include s3 tests, you need to run the in-memory S3 server (Scality
+CloudServer) via docker: `docker compose -f docker-compose.s3.yml up -d s3`.
+The tests create the buckets.
+Then run all tests via `npm run test:all`. `npm run test:ci` also computes the
+coverage (`reports/coverage`).
 
 ## Building and running with Docker
 

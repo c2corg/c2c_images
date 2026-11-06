@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import path from 'node:path';
 import request from 'supertest';
 import { getFileSize } from '../../../../src/image/filesize.js';

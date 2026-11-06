@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, test } from 'vitest';
 import { ObjectCannedACL } from '@aws-sdk/client-s3';
 import fs from 'node:fs';
 import request from 'supertest';
