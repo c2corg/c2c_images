@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import request from 'supertest';
 import { THUMBNAILS_PUBLISH_DELAY } from '../../../src/config.js';
 import { isAvifWriteSupported, isWebpWriteSupported } from '../../../src/exec/imagemagick.js';
@@ -74,31 +75,35 @@ describe('Asynchronous generation of Webp and Avif enabled', () => {
     MAX_MODERN_GENERATION_TIME * 2
   );
 
-  test('POST /publish will give a grace period for modern thumbnails to be generated after upload', async () => {
-    const key = generateUniqueKeyPrefix();
-    // make it so that BI webp is not available in incoming folder
-    await incomingStorage.put(`${key}.png`, 'test/data/piano.png');
-    await incomingStorage.put(`${key}BI.png`, 'test/data/piano.png');
-    await incomingStorage.put(`${key}BI.avif`, 'test/data/piano.png'); // we don't really care about the actual format
+  // the test puts avif thumbnails in the incoming storage, published only if avif is generated
+  test.skipIf(!isAvifWriteSupported)(
+    'POST /publish will give a grace period for modern thumbnails to be generated after upload',
+    async () => {
+      const key = generateUniqueKeyPrefix();
+      // make it so that BI webp is not available in incoming folder
+      await incomingStorage.put(`${key}.png`, 'test/data/piano.png');
+      await incomingStorage.put(`${key}BI.png`, 'test/data/piano.png');
+      await incomingStorage.put(`${key}BI.avif`, 'test/data/piano.png'); // we don't really care about the actual format
 
-    const response = await request(koa.callback())
-      .post('/publish')
-      .send({ secret: 'my secret', filename: `${key}.png` });
+      const response = await request(koa.callback())
+        .post('/publish')
+        .send({ secret: 'my secret', filename: `${key}.png` });
 
-    expect(JSON.parse(response.text)).toEqual({ success: true });
-    expect(response.status).toBe(200);
-    expect(await incomingStorage.exists(`${key}.png`)).toBe(false);
-    expect(await incomingStorage.exists(`${key}BI.png`)).toBe(false);
-    expect(await incomingStorage.exists(`${key}BI.avif`)).toBe(false);
-    expect(await activeStorage.exists(`${key}.png`)).toBe(true);
-    expect(await activeStorage.exists(`${key}BI.png`)).toBe(true);
-    expect(await activeStorage.exists(`${key}BI.avif`)).toBe(true);
-    expect(await activeStorage.exists(`${key}MI.avif`)).toBe(false); // could not be published, doesn't exist in incoming
+      expect(JSON.parse(response.text)).toEqual({ success: true });
+      expect(response.status).toBe(200);
+      expect(await incomingStorage.exists(`${key}.png`)).toBe(false);
+      expect(await incomingStorage.exists(`${key}BI.png`)).toBe(false);
+      expect(await incomingStorage.exists(`${key}BI.avif`)).toBe(false);
+      expect(await activeStorage.exists(`${key}.png`)).toBe(true);
+      expect(await activeStorage.exists(`${key}BI.png`)).toBe(true);
+      expect(await activeStorage.exists(`${key}BI.avif`)).toBe(true);
+      expect(await activeStorage.exists(`${key}MI.avif`)).toBe(false); // could not be published, doesn't exist in incoming
 
-    await incomingStorage.put(`${key}MI.avif`, 'test/data/piano.png');
+      await incomingStorage.put(`${key}MI.avif`, 'test/data/piano.png');
 
-    await new Promise(resolve => setTimeout(resolve, THUMBNAILS_PUBLISH_DELAY + 1000));
+      await new Promise(resolve => setTimeout(resolve, THUMBNAILS_PUBLISH_DELAY + 1000));
 
-    expect(await activeStorage.exists(`${key}MI.avif`)).toBe(true); // should now be published
-  });
+      expect(await activeStorage.exists(`${key}MI.avif`)).toBe(true); // should now be published
+    }
+  );
 });

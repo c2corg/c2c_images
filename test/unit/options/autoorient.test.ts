@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import path from 'node:path';
 import { autoOrient } from '../../../src/image/autoorient.js';
 import { getFileSize } from '../../../src/image/filesize.js';
