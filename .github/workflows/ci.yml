@@ -19,7 +19,7 @@ jobs:
       - name: Install imagemagick and rsvg-convert
         run: sudo apt-get install -y imagemagick librsvg2-bin
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v6
         with:
@@ -82,7 +82,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Create or update release
