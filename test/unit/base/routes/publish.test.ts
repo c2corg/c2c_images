@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { randomInt } from 'node:crypto';
 import request from 'supertest';
 import { koa } from '../../../../src/koa/app.js';
 import { generateUniqueKeyPrefix } from '../../../../src/koa/utils.js';
@@ -61,7 +62,8 @@ describe('POST /publish', () => {
 
   // as v6_api sends it: form encoded, key of v6_images
   test('publish a v6_images image, form encoded', async () => {
-    const key = '1588000002_98765';
+    // a short random part, as in most v6_images keys; unique, the local storage outlives a run
+    const key = `${Math.floor(Date.now() / 1000)}_${randomInt(100000)}`;
     await incomingStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
     await incomingStorage.put(`${key}MI.jpg`, 'test/data/violin.jpg');
     const response = await request(koa.callback())

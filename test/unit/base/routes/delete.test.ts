@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { randomInt } from 'node:crypto';
 import request from 'supertest';
 import { koa } from '../../../../src/koa/app.js';
 import { generateUniqueKeyPrefix } from '../../../../src/koa/utils.js';
@@ -46,7 +47,9 @@ describe('POST /delete', () => {
 
   // as v6_api sends it: form encoded, `filenames` repeated, keys of v6_images
   test('deletes v6_images files, form encoded', async () => {
-    const keys = ['1588000000_123456', '1588000001_7'];
+    // short random parts, as in most v6_images keys; unique, the local storage outlives a run
+    const seconds = Math.floor(Date.now() / 1000);
+    const keys = [`${seconds}_${randomInt(100000)}`, `${seconds}_${randomInt(10)}`];
     for (const key of keys) {
       await activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
       await activeStorage.put(`${key}BI.jpg`, 'test/data/violin.jpg');
