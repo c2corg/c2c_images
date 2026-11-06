@@ -3,8 +3,10 @@ import type { Context } from 'koa';
 import { z, ZodObject, type ZodRawShape } from 'zod';
 import { API_SECRET_KEY, RESIZING_CONFIG } from '../config.js';
 
+// <seconds since epoch>_<random number>, optionally a thumbnail suffix. The random number is not zero padded in the
+// keys made by v6_images (up to 2^31 - 1), so its length varies.
 export const keyRegex = new RegExp(
-  `^\\d{10}_\\d{10}(${RESIZING_CONFIG.map(({ suffix }) => suffix).join('|')})?\\.(jpg|png|gif|svg)$`
+  `^\\d+_\\d+(${RESIZING_CONFIG.map(({ suffix }) => suffix).join('|')})?\\.(jpg|png|gif|svg)$`
 );
 
 const FilenameSchema = z.string().refine(value => keyRegex.test(value));

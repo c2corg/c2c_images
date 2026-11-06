@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { randomInt } from 'node:crypto';
 import request from 'supertest';
 import { koa } from '../../../../src/koa/app.js';
 import { generateUniqueKeyPrefix } from '../../../../src/koa/utils.js';
@@ -57,5 +58,22 @@ describe('POST /publish', () => {
     expect(response.status).toBe(200);
     expect(await activeStorage.exists(`${key}.jpg`)).toBe(true);
     expect(await activeStorage.exists(`${key}BI.jpg`)).toBe(true);
+  });
+
+  // as v6_api sends it: form encoded, key of v6_images
+  test('publish a v6_images image, form encoded', async () => {
+    // a short random part, as in most v6_images keys; unique, the local storage outlives a run
+    const key = `${Math.floor(Date.now() / 1000)}_${randomInt(100000)}`;
+    await incomingStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
+    await incomingStorage.put(`${key}MI.jpg`, 'test/data/violin.jpg');
+    const response = await request(koa.callback())
+      .post('/publish')
+      .type('form')
+      .send(`secret=my+secret&filename=${key}.jpg`);
+    expect(JSON.parse(response.text)).toEqual({ success: true });
+    expect(response.status).toBe(200);
+    expect(await activeStorage.exists(`${key}.jpg`)).toBe(true);
+    expect(await activeStorage.exists(`${key}MI.jpg`)).toBe(true);
+    expect(await incomingStorage.exists(`${key}.jpg`)).toBe(false);
   });
 });
