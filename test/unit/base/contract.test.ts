@@ -29,7 +29,7 @@ describe('HAProxy', () => {
   let port: number;
 
   beforeAll(async () => {
-    server = http.createServer(app).listen(0, '127.0.0.1');
+    server = http.createServer((req, res) => void app(req, res)).listen(0, '127.0.0.1');
     await once(server, 'listening');
     port = (server.address() as net.AddressInfo).port;
   });
@@ -55,8 +55,8 @@ describe('c2c_ui', () => {
       .attach('file', 'test/data/violin.jpg', { filename: 'IMG_1234.JPG', contentType: 'image/jpeg' });
 
     expect(response.status).toBe(200);
-    expect(response.headers['access-control-allow-origin']).toBe('http://test.com');
-    expect(response.headers['content-type']).toMatch(/^application\/json/);
+    expect(response.get('Access-Control-Allow-Origin')).toBe('http://test.com');
+    expect(response.get('Content-Type')).toMatch(/^application\/json/);
     const { filename } = response.body as { filename: string };
     expect(filename).toMatch(/^\d+_\d+\.jpg$/);
     expect(await incomingStorage.exists(filename)).toBe(true);
