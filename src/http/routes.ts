@@ -7,6 +7,7 @@ import createHttpError from 'http-errors';
 import multer from 'multer';
 
 import {
+  AUTH_FAILURE_RATE_LIMIT,
   AUTO_ORIENT_ORIGINAL,
   MAX_UPLOAD_SIZE,
   TEMP_FOLDER,
@@ -35,12 +36,18 @@ import { DeleteBody, PublishBody, RotateBody, UploadFiles, validate } from './va
 export const router = Router();
 // v6_api posts form-encoded bodies, the filenames of /delete as repeated fields
 const bodyParsers = [express.urlencoded({ extended: false }), express.json()] as const;
-// by client address (X-Forwarded-For of HAProxy, see trust proxy), before the file is received
-const uploadRateLimit = rateLimit({
-  windowMs: 60_000,
-  limit: UPLOAD_RATE_LIMIT,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false
+// Rate limits, by client address (X-Forwarded-For of HAProxy, see trust proxy). None on /ping: the health checks of
+// HAProxy must never be refused, and it does nothing.
+const limitOptions = { windowMs: 60_000, standardHeaders: 'draft-8', legacyHeaders: false } as const;
+// uploads, before the file is received
+const uploadRateLimit = rateLimit({ ...limitOptions, limit: UPLOAD_RATE_LIMIT });
+// API routes: only the requests with a missing or bad secret count, against guessing it; the calls of v6_api never do.
+// The requests in progress count until they end, but HAProxy sends at most 2 at a time to an instance.
+const apiRateLimit = rateLimit({
+  ...limitOptions,
+  limit: AUTH_FAILURE_RATE_LIMIT,
+  skipSuccessfulRequests: true,
+  requestWasSuccessful: (_req, res) => res.statusCode !== 401 && res.statusCode !== 403
 });
 const fileParser = multer({ dest: TEMP_FOLDER, limits: { fileSize: MAX_UPLOAD_SIZE, files: 1 } }).single('file');
 
@@ -116,7 +123,7 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
 
 // Publish images from incoming storage to active storage
 // Only called by api service
-router.post('/publish', ...bodyParsers, apiOnly, async (req, res) => {
+router.post('/publish', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) => {
   const { filename: key } = validate(req.body, PublishBody);
 
   const published = await activeStorage.exists(key);
@@ -173,7 +180,7 @@ router.post('/publish', ...bodyParsers, apiOnly, async (req, res) => {
 
 // Delete a file from active storage
 // Only called by api service
-router.post('/delete', ...bodyParsers, apiOnly, async (req, res) => {
+router.post('/delete', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) => {
   const { filenames: keys } = validate(req.body, DeleteBody);
 
   // as v6_images: no check that the files exist, the archives of a document may list files deleted since
@@ -189,7 +196,7 @@ router.post('/delete', ...bodyParsers, apiOnly, async (req, res) => {
 
 // Rotate the image and return a new key
 // Only called by api service
-router.post('/rotate', ...bodyParsers, apiOnly, async (req, res) => {
+router.post('/rotate', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) => {
   const { rotation = '90', filename: key } = validate(req.body, RotateBody);
   const { ext } = path.parse(key);
 

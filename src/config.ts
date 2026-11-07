@@ -21,6 +21,8 @@ export const TEMP_FOLDER = process.env['TEMP_FOLDER'] || `${os.tmpdir()}/images/
 export const MAX_UPLOAD_SIZE = Number.parseInt(process.env['MAX_UPLOAD_SIZE'] ?? '', 10) || 200 * 1024 * 1024;
 // uploads per minute and client address, on each instance. Generous: the UI uploads the images of a batch together
 export const UPLOAD_RATE_LIMIT = Number.parseInt(process.env['UPLOAD_RATE_LIMIT'] ?? '', 10) || 100;
+// requests to the API routes with a missing or bad secret, per minute and client address, on each instance
+export const AUTH_FAILURE_RATE_LIMIT = Number.parseInt(process.env['AUTH_FAILURE_RATE_LIMIT'] ?? '', 10) || 10;
 
 // The proxies whose X-Forwarded-For header is trusted (Express' "trust proxy" setting): a number of hops, true or false, or a
 // comma-separated list of addresses, subnets or names (loopback, linklocal, uniquelocal). Default: the private networks,
