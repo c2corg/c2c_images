@@ -72,7 +72,7 @@ active bucket.
 `RESIZING_CONFIG`: The thumbnail sizes, in JSON, for example:
 
 ```json
-[{ "suffix": "BI", "width": 1500, "height": 1500, "fit": "inside", "quality": 90 }]
+[{ "suffix": "BI", "width": 1500, "height": 1500, "fit": "inside" }]
 ```
 
 `fit`: `inside` keeps the proportions within the size, without enlarging;
