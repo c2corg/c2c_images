@@ -1,10 +1,11 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
 import { autoOrient } from '../../../src/image/autoorient.js';
-import { getFileSize } from '../../../src/image/filesize.js';
 import { tempStorage } from '../../../src/storage/storage.js';
+import { imageInfo } from '../../helpers/image.js';
 
 const copytestImageToTempStorage = async (filename: string): Promise<void> => {
   const { base } = path.parse(filename);
@@ -16,6 +17,18 @@ describe('Auto orient jpeg images', () => {
     const key = 'autoorient.jpg';
     await copytestImageToTempStorage(key);
     await autoOrient(tempStorage.path(key));
-    expect(await getFileSize(tempStorage.path(key))).toBe('133x200');
+    expect(await imageInfo(tempStorage.path(key))).toMatchObject({
+      format: 'jpeg',
+      size: '133x200',
+      orientation: 1
+    });
+  });
+
+  test('keeps the upright images as they are', async () => {
+    const key = 'violin.jpg';
+    await copytestImageToTempStorage(key);
+    const before = fs.readFileSync(tempStorage.path(key));
+    await autoOrient(tempStorage.path(key));
+    expect(fs.readFileSync(tempStorage.path(key)).equals(before)).toBe(true);
   });
 });

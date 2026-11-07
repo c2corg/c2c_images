@@ -12,9 +12,7 @@ ARG VERSION
 ENV npm_package_version=${VERSION}
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        file \
-        librsvg2-bin \
-        imagemagick \
+        fontconfig \
         fonts-liberation \
         fonts-dejavu \
         ttf-bitstream-vera \

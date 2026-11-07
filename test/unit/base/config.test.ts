@@ -38,21 +38,19 @@ describe('configuration', () => {
       SERVICE_PORT: '9000',
       GENERATE_WEBP: 'yes',
       AUTO_ORIENT_ORIGINAL: '1',
-      PREFER_IDENTIFY_OVER_FILE: 'false',
       ALLOWED_ORIGINS: 'https://www.camptocamp.org, https://www.demov6.camptocamp.org',
       TRUST_PROXY: '1',
       THUMBNAILS_PUBLISH_DELAY: '0',
-      RESIZING_CONFIG: '[{"suffix":"XS","convert":["-thumbnail","50x50"]}]'
+      RESIZING_CONFIG: '[{"suffix":"XS","width":50,"height":40,"fit":"cover"}]'
     });
     expect(config).toMatchObject({
       SERVICE_PORT: 9000,
       GENERATE_WEBP: true,
       AUTO_ORIENT_ORIGINAL: true,
-      PREFER_IDENTIFY_OVER_FILE: false,
       ALLOWED_ORIGINS: ['https://www.camptocamp.org', 'https://www.demov6.camptocamp.org'],
       TRUST_PROXY: 1,
       THUMBNAILS_PUBLISH_DELAY: 0,
-      RESIZING_CONFIG: [{ suffix: 'XS', convert: ['-thumbnail', '50x50'] }]
+      RESIZING_CONFIG: [{ suffix: 'XS', width: 50, height: 40, fit: 'cover', quality: 90 }]
     });
   });
 
@@ -78,7 +76,8 @@ describe('configuration', () => {
     [{ ...local, MAX_UPLOAD_SIZE: '-1' }, 'MAX_UPLOAD_SIZE'],
     [{ ...local, METRICS_PATH: 'metrics' }, 'METRICS_PATH'],
     [{ ...local, RESIZING_CONFIG: '[{' }, 'Invalid JSON'],
-    [{ ...local, RESIZING_CONFIG: '[]' }, 'RESIZING_CONFIG']
+    [{ ...local, RESIZING_CONFIG: '[]' }, 'RESIZING_CONFIG'],
+    [{ ...local, RESIZING_CONFIG: '[{"suffix":"XS","width":50,"height":40,"fit":"fill"}]' }, 'RESIZING_CONFIG']
   ])('refuses invalid values (%#: %s)', (env, message) => {
     expect(() => parseEnv(env)).toThrow(message);
   });

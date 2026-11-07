@@ -6,9 +6,9 @@ import { describe, expect, test } from 'vitest';
 import { app } from '../../../../src/http/app.js';
 import { generateUniqueKeyPrefix } from '../../../../src/http/utils.js';
 import { keyRegex } from '../../../../src/http/validation.js';
-import { getFileSize } from '../../../../src/image/filesize.js';
 import { allThumbnailKeys, baseThumbnailKeys } from '../../../../src/image/thumbnails.js';
 import { activeStorage, tempStorage } from '../../../../src/storage/storage.js';
+import { imageInfo } from '../../../helpers/image.js';
 
 describe('POST /rotate', () => {
   test('requires api secret', async () => {
@@ -77,7 +77,22 @@ describe('POST /rotate', () => {
     // check that the image has been actually rotated
     await activeStorage.move(`${newKey}.png`, tempStorage);
     await activeStorage.move(`${newKey}MI.png`, tempStorage);
-    expect(await getFileSize(tempStorage.path(`${newKey}.png`))).toBe('551x1151');
-    expect(await getFileSize(tempStorage.path(`${newKey}MI.png`))).toBe('191x400');
+    expect(await imageInfo(tempStorage.path(`${newKey}.png`))).toMatchObject({ size: '551x1151' });
+    expect(await imageInfo(tempStorage.path(`${newKey}MI.png`))).toMatchObject({ size: '191x400' });
+  });
+
+  test.each([
+    // displayed 133x200 (EXIF orientation 7), then rotated
+    ['autoorient.jpg', '90', { format: 'jpeg', size: '200x133', orientation: 1 }],
+    ['animated.gif', '-90', { format: 'gif', size: '80x120', pages: 3 }]
+  ])('rotates %s upright, by %s', async (filename, rotation, expected) => {
+    const ext = path.extname(filename);
+    const key = `${generateUniqueKeyPrefix()}${ext}`;
+    await activeStorage.put(key, `test/data/${filename}`);
+    const response = await request(app).post('/rotate').send({ secret: 'my secret', filename: key, rotation });
+    expect(response.status).toBe(200);
+    const { filename: newKey } = response.body as { filename: string };
+    await activeStorage.move(newKey, tempStorage);
+    expect(await imageInfo(tempStorage.path(newKey))).toMatchObject(expected);
   });
 });

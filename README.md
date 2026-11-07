@@ -69,22 +69,21 @@ _PREFIX_`_DEFAULT_REGION`: Default region for corresponding prefix.
 `API_SECRET_KEY`: (required) API secret key, needed to publish images on the
 active bucket.
 
-`RESIZING_CONFIG`: Configuration of the thumbnail names and sizes serialized
-in JSON. See src/config.ts for a description of the format.
+`RESIZING_CONFIG`: The thumbnail sizes, in JSON: a list of
+`{ "suffix": "BI", "width": 1500, "height": 1500, "fit": "inside", "quality": 90 }`.
+`fit`: `inside` keeps the proportions within the size, without enlarging;
+`cover` fills the size, cropped around the center. `quality` (JPEG, WebP,
+AVIF) is optional, `90` by default. Default: `BI` 1500x1500 and `MI` 400x400
+inside, `SI` 200x200 cover, as v6_images.
 
 `AUTO_ORIENT_ORIGINAL`: `1` to rotate the uploaded image according to the
 EXIF orientation. Default is `0`.
 
 `GENERATE_WEBP`: `1` to generate webp thumbnails along with jpeg/png/gif
-ones. Default is `0`. Ignored if imagemagick does not support writing
-to this format.
+ones. Default is `0`.
 
 `GENERATE_AVIF`: `1` to generate avif thumbnails along with jpeg/png/gif
-ones. Default is `0`. Ignored if imagemagick does not support writing
-to this format.
-
-`PREFER_IDENTIFY_OVER_FILE`: `1` to detect the file formats with imagemagick
-even if `file` is installed. Default is `0`.
+ones. Default is `0`.
 
 `THUMBNAILS_PUBLISH_DELAY`: Delay in ms before publishing the webp/avif
 thumbnails not rendered yet when an image is published. Default is `20000`.
@@ -214,7 +213,9 @@ expired images.
 
 ## Testing
 
-You need `rsvg-convert` and `imagemagick` installed.
+Images are processed by [sharp](https://sharp.pixelplumbing.com) (libvips,
+with librsvg for SVG), installed by npm with its own binaries: nothing else to
+install.
 
 Tests use [Vitest](https://vitest.dev). Run the unit tests via `npm run test`,
 or `npm run test:watch` while developing.
