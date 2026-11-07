@@ -2,10 +2,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import express, { Router, type RequestHandler } from 'express';
+import { rateLimit } from 'express-rate-limit';
 import createHttpError from 'http-errors';
 import multer from 'multer';
 
-import { AUTO_ORIENT_ORIGINAL, MAX_UPLOAD_SIZE, TEMP_FOLDER, THUMBNAILS_PUBLISH_DELAY } from '../config.js';
+import {
+  AUTO_ORIENT_ORIGINAL,
+  MAX_UPLOAD_SIZE,
+  TEMP_FOLDER,
+  THUMBNAILS_PUBLISH_DELAY,
+  UPLOAD_RATE_LIMIT
+} from '../config.js';
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
 import { rotateImages } from '../image/rotate.js';
@@ -28,6 +35,13 @@ import { DeleteBody, PublishBody, RotateBody, UploadFiles, validate } from './va
 export const router = Router();
 // v6_api posts form-encoded bodies, the filenames of /delete as repeated fields
 const bodyParsers = [express.urlencoded({ extended: false }), express.json()] as const;
+// by client address (X-Forwarded-For of HAProxy, see trust proxy), before the file is received
+const uploadRateLimit = rateLimit({
+  windowMs: 60_000,
+  limit: UPLOAD_RATE_LIMIT,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false
+});
 const fileParser = multer({ dest: TEMP_FOLDER, limits: { fileSize: MAX_UPLOAD_SIZE, files: 1 } }).single('file');
 
 // Health endpoint
@@ -37,7 +51,7 @@ router.get('/ping', (_req, res) => {
 
 // Uploaded images are verified, resized images generated and stored in the incoming storage
 // This endpoint is called directly by the UI.
-router.post('/upload', fileParser, async (req, res) => {
+router.post('/upload', uploadRateLimit, fileParser, async (req, res) => {
   try {
     res.json(await upload(req.file));
   } finally {
