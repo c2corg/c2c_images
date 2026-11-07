@@ -75,3 +75,18 @@ describe('S3 storage', () => {
     expect(await activeStorage.exists(newKey)).toBe(false);
   });
 });
+
+describe('incoming lifecycle, against the S3 server', () => {
+  test('the expiration rule is created when the bucket has none, then found', async () => {
+    const { DeleteBucketLifecycleCommand, S3Client } = await import('@aws-sdk/client-s3');
+    const { createIncomingRule, getIncomingLifecycle } = await import('../../../src/storage/incoming-lifecycle.js');
+    const client = new S3Client({ ...getS3Params('S3'), forcePathStyle: true });
+    const bucket = process.env['INCOMING_BUCKET']!;
+    await client.send(new DeleteBucketLifecycleCommand({ Bucket: bucket }));
+
+    expect(await getIncomingLifecycle(client, bucket)).toEqual({ state: 'none' });
+    await createIncomingRule(client, bucket, 1);
+    expect(await getIncomingLifecycle(client, bucket)).toEqual({ state: 'rule', days: 1 });
+    await client.send(new DeleteBucketLifecycleCommand({ Bucket: bucket }));
+  });
+});

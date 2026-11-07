@@ -21,6 +21,10 @@ describe('configuration', () => {
       GENERATE_WEBP: false,
       ALLOWED_ORIGINS: ['*'],
       THUMBNAILS_PUBLISH_DELAY: 20000,
+      INCOMING_CLEANUP: 'auto',
+      INCOMING_MAX_AGE_HOURS: 24,
+      INCOMING_CLEANUP_INTERVAL_MINUTES: 60,
+      INCOMING_CLEANUP_DRY_RUN: false,
       STORAGE: { STORAGE_BACKEND: 'local', INCOMING_FOLDER: '/in', ACTIVE_FOLDER: '/act' }
     });
     expect(config.RESIZING_CONFIG.map(({ suffix }) => suffix)).toEqual(['BI', 'MI', 'SI']);
@@ -75,6 +79,7 @@ describe('configuration', () => {
     [{ ...local, SERVICE_PORT: '80a' }, 'SERVICE_PORT'],
     [{ ...local, GENERATE_AVIF: 'maybe' }, 'GENERATE_AVIF'],
     [{ ...local, MAX_UPLOAD_SIZE: '-1' }, 'MAX_UPLOAD_SIZE'],
+    [{ ...local, INCOMING_CLEANUP: 'sometimes' }, 'INCOMING_CLEANUP'],
     [{ ...local, METRICS_PATH: 'metrics' }, 'METRICS_PATH'],
     [{ ...local, RESIZING_CONFIG: '[{' }, 'Invalid JSON'],
     [{ ...local, RESIZING_CONFIG: '[]' }, 'RESIZING_CONFIG'],
