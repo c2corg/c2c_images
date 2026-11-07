@@ -21,6 +21,10 @@ describe('configuration', () => {
       GENERATE_WEBP: false,
       ALLOWED_ORIGINS: ['*'],
       THUMBNAILS_PUBLISH_DELAY: 20000,
+      JPEG_QUALITY: 90,
+      AVIF_QUALITY: 60,
+      WEBP_QUALITY: 80,
+      AVIF_EFFORT: 4,
       INCOMING_CLEANUP: 'auto',
       INCOMING_MAX_AGE_HOURS: 24,
       INCOMING_CLEANUP_INTERVAL_MINUTES: 60,
@@ -55,7 +59,8 @@ describe('configuration', () => {
       ALLOWED_ORIGINS: ['https://www.camptocamp.org', 'https://www.demov6.camptocamp.org'],
       TRUST_PROXY: 1,
       THUMBNAILS_PUBLISH_DELAY: 0,
-      RESIZING_CONFIG: [{ suffix: 'XS', width: 50, height: 40, fit: 'cover', quality: 90 }]
+      // a quality of an older configuration is ignored
+      RESIZING_CONFIG: [{ suffix: 'XS', width: 50, height: 40, fit: 'cover' }]
     });
   });
 
@@ -80,6 +85,8 @@ describe('configuration', () => {
     [{ ...local, GENERATE_AVIF: 'maybe' }, 'GENERATE_AVIF'],
     [{ ...local, MAX_UPLOAD_SIZE: '-1' }, 'MAX_UPLOAD_SIZE'],
     [{ ...local, INCOMING_CLEANUP: 'sometimes' }, 'INCOMING_CLEANUP'],
+    [{ ...local, AVIF_QUALITY: '0' }, 'AVIF_QUALITY'],
+    [{ ...local, AVIF_EFFORT: '10' }, 'AVIF_EFFORT'],
     [{ ...local, METRICS_PATH: 'metrics' }, 'METRICS_PATH'],
     [{ ...local, RESIZING_CONFIG: '[{' }, 'Invalid JSON'],
     [{ ...local, RESIZING_CONFIG: '[]' }, 'RESIZING_CONFIG'],

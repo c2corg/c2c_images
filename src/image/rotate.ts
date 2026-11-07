@@ -4,7 +4,7 @@ import { log } from '../log.js';
 import { imageRotationsHistogram } from '../metrics/prometheus.js';
 import { activeStorage, tempStorage } from '../storage/storage.js';
 
-import { encode, openImage, sharp } from './sharp.js';
+import { encode, openImage, ORIGINAL_JPEG_QUALITY, sharp } from './sharp.js';
 import { removeFromTemp } from './temp.js';
 import { allThumbnailKeys, baseThumbnailKeys, createThumbnails, modernThumbnailKeys } from './thumbnails.js';
 
@@ -33,7 +33,9 @@ const rotateImage = async (file: string, rotatedFile: string, angle: number): Pr
     await rotateAnimatedGif(file, rotatedFile, angle);
     return;
   }
-  await encode(openImage(file).autoOrient().rotate(angle).keepMetadata(), ext, 90).toFile(rotatedFile);
+  await encode(openImage(file).autoOrient().rotate(angle).keepMetadata(), ext, { jpeg: ORIGINAL_JPEG_QUALITY }).toFile(
+    rotatedFile
+  );
 };
 
 export const rotateImages = async (originalKey: string, newKey: string, rotation: string): Promise<void> => {

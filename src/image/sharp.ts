@@ -1,6 +1,6 @@
 import sharp, { type Sharp, type SharpOptions } from 'sharp';
 
-import { MAX_IMAGE_PIXELS } from '../config.js';
+import { AVIF_EFFORT, AVIF_QUALITY, JPEG_QUALITY, MAX_IMAGE_PIXELS, WEBP_QUALITY } from '../config.js';
 
 export const SVG_DENSITY = 96;
 
@@ -20,19 +20,25 @@ export const openImage = (file: string, options: { svg?: boolean; animated?: boo
   return sharp(file, sharpOptions);
 };
 
-// the encoder of a file, by its extension
-export const encode = (image: Sharp, ext: string, quality: number): Sharp => {
+// the originals re-encoded (rotation, auto-orientation) keep a high quality
+export const ORIGINAL_JPEG_QUALITY = 90;
+
+/**
+ * The encoder of a file, by its extension. JPEG through mozjpeg (smaller at the same quality, progressive); PNG and GIF
+ * lossless, PNG with the strongest compression.
+ */
+export const encode = (image: Sharp, ext: string, { jpeg = JPEG_QUALITY }: { jpeg?: number } = {}): Sharp => {
   switch (ext) {
     case '.jpg':
-      return image.jpeg({ quality });
+      return image.jpeg({ quality: jpeg, mozjpeg: true });
     case '.png':
-      return image.png();
+      return image.png({ compressionLevel: 9 });
     case '.gif':
       return image.gif();
     case '.webp':
-      return image.webp({ quality });
+      return image.webp({ quality: WEBP_QUALITY });
     case '.avif':
-      return image.avif({ quality });
+      return image.avif({ quality: AVIF_QUALITY, effort: AVIF_EFFORT });
     default:
       throw new Error(`Unsupported output image format ${ext}.`);
   }

@@ -17,21 +17,21 @@ const parseTrustProxy = (value: string): boolean | number | string => {
 };
 
 // A thumbnail size. fit: inside keeps the proportions within width x height, without enlarging; cover fills width x height,
-// cropped around the center. quality: of JPEG, WebP and AVIF.
+// cropped around the center. The quality is per format (JPEG_QUALITY...); a `quality` here, from older configurations, is
+// ignored.
 const ResizeConfig = z.object({
   suffix: z.string().regex(/^[A-Z]+$/),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
-  fit: z.enum(['inside', 'cover']),
-  quality: z.number().int().min(1).max(100).default(90)
+  fit: z.enum(['inside', 'cover'])
 });
 export type ResizeConfig = z.infer<typeof ResizeConfig>;
 
 // as v6_images: big, medium and small images
 const DEFAULT_RESIZING_CONFIG: ResizeConfig[] = [
-  { suffix: 'BI', width: 1500, height: 1500, fit: 'inside', quality: 90 },
-  { suffix: 'MI', width: 400, height: 400, fit: 'inside', quality: 90 },
-  { suffix: 'SI', width: 200, height: 200, fit: 'cover', quality: 90 }
+  { suffix: 'BI', width: 1500, height: 1500, fit: 'inside' },
+  { suffix: 'MI', width: 400, height: 400, fit: 'inside' },
+  { suffix: 'SI', width: 200, height: 200, fit: 'cover' }
 ];
 
 // a JSON value in a string
@@ -52,6 +52,8 @@ const port = (defaultPort: number): z.ZodDefault<z.ZodCoercedNumber> =>
   z.coerce.number().int().min(1).max(65535).default(defaultPort);
 const positiveInt = (defaultValue: number): z.ZodDefault<z.ZodCoercedNumber> =>
   z.coerce.number().int().positive().default(defaultValue);
+const quality = (defaultValue: number): z.ZodDefault<z.ZodCoercedNumber> =>
+  z.coerce.number().int().min(1).max(100).default(defaultValue);
 // 1, true, yes, on, y, enabled or their opposites, case-insensitive
 const flag = z.stringbool().default(false);
 
@@ -94,6 +96,12 @@ const Env = z.object({
 
   RESIZING_CONFIG: json(z.array(ResizeConfig).nonempty()).default(DEFAULT_RESIZING_CONFIG),
   CACHE_CONTROL: z.string().default('public, max-age=3600'),
+  // Quality of the thumbnails, per format: the scales differ (AVIF 60 looks like JPEG 85-90). JPEG through mozjpeg.
+  JPEG_QUALITY: quality(90),
+  AVIF_QUALITY: quality(60),
+  WEBP_QUALITY: quality(80),
+  // CPU spent by the AVIF encoder, 0 (fast) to 9 (small files)
+  AVIF_EFFORT: z.coerce.number().int().min(0).max(9).default(4),
   AUTO_ORIENT_ORIGINAL: flag,
   GENERATE_AVIF: flag,
   GENERATE_WEBP: flag,
@@ -145,6 +153,10 @@ export const {
   TRUST_PROXY,
   RESIZING_CONFIG,
   CACHE_CONTROL,
+  JPEG_QUALITY,
+  AVIF_QUALITY,
+  WEBP_QUALITY,
+  AVIF_EFFORT,
   AUTO_ORIENT_ORIGINAL,
   GENERATE_AVIF,
   GENERATE_WEBP,

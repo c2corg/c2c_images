@@ -32,7 +32,7 @@ export const createThumbnail = async (
   const originalPath = path.join(dir, originalKey);
   const resizedPath = path.join(dir, thumbnailKey(originalKey, config.suffix, format));
   const resizedExt = path.extname(resizedPath);
-  const { width, height, fit, quality } = config;
+  const { width, height, fit } = config;
 
   log.info(`Creating resized image ${resizedPath}, ${fit} ${width}x${height}`);
   const end = imageGenerationsHistogram.startTimer({ format: resizedExt.slice(1), size: config.suffix });
@@ -52,7 +52,7 @@ export const createThumbnail = async (
     // inside: smaller images are kept as they are; cover: cropped around the center to fill the size
     withoutEnlargement: fit === 'inside'
   });
-  await encode(image, resizedExt, quality).toFile(resizedPath);
+  await encode(image, resizedExt).toFile(resizedPath);
   end();
 };
 
