@@ -69,6 +69,14 @@ export default defineConfig(
     }
   },
   {
+    files: ['src/**/*.ts'],
+    rules: {
+      // every file path of the service is computed: a configured folder (TEMP_FOLDER, INCOMING_FOLDER, ACTIVE_FOLDER) and
+      // a key validated by keyRegex or generated, passed through sanitize-filename by LocalStorage, or multer's temp name
+      'security/detect-non-literal-fs-filename': 'off'
+    }
+  },
+  {
     files: ['test/**/*.ts'],
     extends: [vitest.configs.recommended],
     rules: {

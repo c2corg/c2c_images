@@ -81,8 +81,10 @@ const Env = z.object({
   API_SECRET_KEY: z.string(),
 
   TEMP_FOLDER: z.string().default(`${os.tmpdir()}/images/temp`),
-  // in bytes, 200 MiB as before (the default of koa-body)
-  MAX_UPLOAD_SIZE: positiveInt(200 * 1024 * 1024),
+  // in bytes
+  MAX_UPLOAD_SIZE: positiveInt(30 * 1024 * 1024),
+  // width x height x frames of an uploaded image, against decompression bombs. Default: the limit of libvips (16383^2)
+  MAX_IMAGE_PIXELS: positiveInt(16383 * 16383),
   // uploads per minute and client address, on each instance. Generous: the UI uploads the images of a batch together
   UPLOAD_RATE_LIMIT: positiveInt(100),
   // requests to the API routes with a missing or bad secret, per minute and client address, on each instance
@@ -130,6 +132,7 @@ export const {
   STORAGE,
   TEMP_FOLDER,
   MAX_UPLOAD_SIZE,
+  MAX_IMAGE_PIXELS,
   UPLOAD_RATE_LIMIT,
   AUTH_FAILURE_RATE_LIMIT,
   TRUST_PROXY,

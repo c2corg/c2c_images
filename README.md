@@ -99,7 +99,14 @@ to s3. Default is `public, max-age=3600`.
 This is currently only for the `/upload` endpoint. Default is `*`.
 
 `MAX_UPLOAD_SIZE`: Maximum size of an uploaded file, in bytes (413 above).
-Default is `209715200` (200 MiB).
+Default is `31457280` (30 MiB).
+
+`MAX_IMAGE_PIXELS`: Maximum width x height x frames of an uploaded image
+(400 above), against decompression bombs. Default is `268402689` (16383²,
+the limit of libvips).
+
+Uploaded SVG are sanitized: only static drawings are kept, without scripts,
+event handlers, animations or references to external resources.
 
 `UPLOAD_RATE_LIMIT`: Uploads per minute and client address, on each instance
 (429 above). Default is `100`.
