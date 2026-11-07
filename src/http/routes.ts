@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import express, { Router, type RequestHandler } from 'express';
-import { rateLimit } from 'express-rate-limit';
+import { rateLimit, type Options } from 'express-rate-limit';
 import createHttpError from 'http-errors';
 import multer from 'multer';
 
@@ -22,10 +22,12 @@ import { removeFromTemp } from '../image/temp.js';
 import { allThumbnailKeys, baseThumbnailKeys, createThumbnails, modernThumbnailKeys } from '../image/thumbnails.js';
 import { log } from '../log.js';
 import {
+  countRateLimited,
   promDeletedImagesCounter,
   promErrorsCounter,
   promPublishedImagesCounter,
   promPublishedThumbnailsErrorCounter,
+  promRefusedUploadsCounter,
   promRotatedImagesCounter,
   promUploadedImagesCounter
 } from '../metrics/prometheus.js';
@@ -40,7 +42,19 @@ export const router = Router();
 const bodyParsers = [express.urlencoded({ extended: false }), express.json()] as const;
 // Rate limits, by client address (X-Forwarded-For of HAProxy, see trust proxy). None on /ping: the health checks of
 // HAProxy must never be refused, and it does nothing.
-const limitOptions = { windowMs: 60_000, standardHeaders: 'draft-8', legacyHeaders: false } as const;
+const limitOptions = {
+  windowMs: 60_000,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  // the answer of express-rate-limit, counted
+  handler: (req, res, _next, { statusCode, message }) => {
+    countRateLimited(req);
+    if (req.path === '/upload') {
+      promRefusedUploadsCounter.inc({ reason: 'rate' });
+    }
+    res.status(statusCode).send(message);
+  }
+} as const satisfies Partial<Options>;
 // uploads, before the file is received
 const uploadRateLimit = rateLimit({ ...limitOptions, limit: UPLOAD_RATE_LIMIT });
 // API routes: only the requests with a missing or bad secret count, against guessing it; the calls of v6_api never do.
@@ -88,6 +102,9 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
   try {
     format = await getFileFormat(file.path);
   } catch (error: unknown) {
+    promRefusedUploadsCounter.inc({
+      reason: error instanceof Error && error.message === 'Image too large.' ? 'pixels' : 'format'
+    });
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw createHttpError(400, error instanceof Error ? error.message : `${error}`);
   }
@@ -97,6 +114,7 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
     try {
       await sanitizeSvgFile(file.path);
     } catch {
+      promRefusedUploadsCounter.inc({ reason: 'svg' });
       throw createHttpError(400, 'Unsupported image format.');
     }
   }
@@ -123,7 +141,7 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
       .then(async () => uploadModernThumbnails(originalKey))
       .catch(async (error: unknown) => {
         log.error(error);
-        promErrorsCounter.inc();
+        promErrorsCounter.inc({ kind: 'background' });
         await removeFromTemp(originalKey);
       })
       .catch((error: unknown) => log.error(error));
@@ -134,7 +152,7 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
 
   log.debug(`${keyPrefix} - returning response`);
 
-  promUploadedImagesCounter.inc({ format }, 1);
+  promUploadedImagesCounter.inc({ format });
   return {
     success: true,
     filename: `${keyPrefix}.${format}`
@@ -181,18 +199,18 @@ router.post('/publish', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) 
             }
             // some thumbnails were not generated
             log.error(`${length} thumbnails could not be published for image ${key}`);
-            promPublishedThumbnailsErrorCounter.labels({ key }).inc(length);
+            promPublishedThumbnailsErrorCounter.inc(length);
           })
           .catch(error => {
             log.error(error);
-            promErrorsCounter.inc();
+            promErrorsCounter.inc({ kind: 'background' });
           });
       }, THUMBNAILS_PUBLISH_DELAY);
     }
 
     await incomingStorage.move(key, activeStorage);
 
-    promPublishedImagesCounter.inc(1);
+    promPublishedImagesCounter.inc();
   }
 
   res.json({ success: true });
@@ -210,7 +228,7 @@ router.post('/delete', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) =
       .map(key => activeStorage.delete(key).catch(() => log.error(`Deleting ${key} failed`)))
   );
 
-  promDeletedImagesCounter.inc(1);
+  promDeletedImagesCounter.inc(keys.length);
   res.json({ success: true });
 });
 
@@ -234,7 +252,7 @@ router.post('/rotate', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) =
 
   await rotateImages(key, newKey, rotation);
 
-  promRotatedImagesCounter.inc(1);
+  promRotatedImagesCounter.inc();
   res.json({ success: true, filename: newKey });
 });
 

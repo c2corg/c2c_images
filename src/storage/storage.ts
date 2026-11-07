@@ -16,6 +16,7 @@ import { z } from 'zod';
 
 import { CACHE_CONTROL, INCOMING_MAX_AGE_HOURS, STORAGE, TEMP_FOLDER } from '../config.js';
 import { getMimeTypeFromKey } from '../image/filetype.js';
+import { s3RequestDuration } from '../metrics/prometheus.js';
 
 export abstract class Storage {
   public abstract exists(key: string): Promise<boolean>;
@@ -113,13 +114,30 @@ export class S3Storage implements Storage {
     });
   }
 
+  // an S3 request, timed by operation and outcome
+  async #timed<T>(operation: string, request: Promise<T>): Promise<T> {
+    const end = s3RequestDuration.startTimer({ operation });
+    try {
+      const result = await request;
+      end({ outcome: 'ok' });
+      return result;
+    } catch (error) {
+      const name = error instanceof Error ? error.name : '';
+      end({ outcome: name === 'NotFound' || name === 'NoSuchKey' ? 'not_found' : 'error' });
+      throw error;
+    }
+  }
+
   public async exists(key: string): Promise<boolean> {
     try {
-      await this.#client.send(
-        new HeadObjectCommand({
-          Bucket: this.#bucketName,
-          Key: key
-        })
+      await this.#timed(
+        'head',
+        this.#client.send(
+          new HeadObjectCommand({
+            Bucket: this.#bucketName,
+            Key: key
+          })
+        )
       );
       return true;
     } catch {
@@ -128,11 +146,14 @@ export class S3Storage implements Storage {
   }
 
   public async get(key: string): Promise<Buffer> {
-    const { Body } = await this.#client.send(
-      new GetObjectCommand({
-        Bucket: this.#bucketName,
-        Key: key
-      })
+    const { Body } = await this.#timed(
+      'get',
+      this.#client.send(
+        new GetObjectCommand({
+          Bucket: this.#bucketName,
+          Key: key
+        })
+      )
     );
 
     const stream = Body as Readable;
@@ -147,39 +168,48 @@ export class S3Storage implements Storage {
   public async put(key: string, originalFilePath: string): Promise<void> {
     const buffer = fs.readFileSync(originalFilePath);
     const expires = this.#shouldExpire ? new Date(Date.now() + INCOMING_MAX_AGE_HOURS * 1000 * 60 * 60) : undefined;
-    await this.#client.send(
-      new PutObjectCommand({
-        Bucket: this.#bucketName,
-        Key: key,
-        Body: buffer,
-        Expires: expires,
-        CacheControl: CACHE_CONTROL,
-        ACL: this.#defaultACL,
-        ContentType: getMimeTypeFromKey(key)
-      })
+    await this.#timed(
+      'put',
+      this.#client.send(
+        new PutObjectCommand({
+          Bucket: this.#bucketName,
+          Key: key,
+          Body: buffer,
+          Expires: expires,
+          CacheControl: CACHE_CONTROL,
+          ACL: this.#defaultACL,
+          ContentType: getMimeTypeFromKey(key)
+        })
+      )
     );
   }
 
   public async delete(key: string): Promise<void> {
-    await this.#client.send(
-      new DeleteObjectCommand({
-        Bucket: this.#bucketName,
-        Key: key
-      })
+    await this.#timed(
+      'delete',
+      this.#client.send(
+        new DeleteObjectCommand({
+          Bucket: this.#bucketName,
+          Key: key
+        })
+      )
     );
   }
 
   public async copy(key: string, destinationStorage: Storage): Promise<void> {
     if (destinationStorage instanceof S3Storage) {
-      await this.#client.send(
-        new CopyObjectCommand({
-          Bucket: destinationStorage.#bucketName,
-          Key: key,
-          CopySource: `/${this.#bucketName}/${key}`,
-          CacheControl: CACHE_CONTROL,
-          ACL: destinationStorage.#defaultACL,
-          ContentType: getMimeTypeFromKey(key)
-        })
+      await this.#timed(
+        'copy',
+        this.#client.send(
+          new CopyObjectCommand({
+            Bucket: destinationStorage.#bucketName,
+            Key: key,
+            CopySource: `/${this.#bucketName}/${key}`,
+            CacheControl: CACHE_CONTROL,
+            ACL: destinationStorage.#defaultACL,
+            ContentType: getMimeTypeFromKey(key)
+          })
+        )
       );
     } else if (destinationStorage instanceof LocalStorage) {
       fs.writeFileSync(destinationStorage.path(key), await this.get(key));
@@ -194,11 +224,14 @@ export class S3Storage implements Storage {
   }
 
   public async lastModified(key: string): Promise<Date | undefined> {
-    const { LastModified } = await this.#client.send(
-      new HeadObjectCommand({
-        Bucket: this.#bucketName,
-        Key: key
-      })
+    const { LastModified } = await this.#timed(
+      'head',
+      this.#client.send(
+        new HeadObjectCommand({
+          Bucket: this.#bucketName,
+          Key: key
+        })
+      )
     );
     return LastModified;
   }

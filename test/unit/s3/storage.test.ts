@@ -90,3 +90,14 @@ describe('incoming lifecycle, against the S3 server', () => {
     await client.send(new DeleteBucketLifecycleCommand({ Bucket: bucket }));
   });
 });
+
+describe('S3 metrics', () => {
+  test('the requests are timed by operation and outcome', async () => {
+    const { s3RequestDuration } = await import('../../../src/metrics/prometheus.js');
+    const { metricValue } = await import('../../helpers/metrics.js');
+    const storage = new S3Storage(process.env['INCOMING_BUCKET']!, getS3Params('S3'), ObjectCannedACL.private);
+    const before = await metricValue(s3RequestDuration, { operation: 'head', outcome: 'not_found' });
+    expect(await storage.exists(`${generateUniqueKeyPrefix()}.jpg`)).toBe(false);
+    expect(await metricValue(s3RequestDuration, { operation: 'head', outcome: 'not_found' })).toBe(before + 1);
+  });
+});

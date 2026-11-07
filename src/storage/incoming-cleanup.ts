@@ -1,5 +1,7 @@
 import type { S3Client } from '@aws-sdk/client-s3';
 
+import { incomingCleanupDeleted, incomingCleanupInfo } from '../metrics/prometheus.js';
+
 import { cleanIncoming } from './clean-incoming.js';
 import { createIncomingRule, getIncomingLifecycle } from './incoming-lifecycle.js';
 
@@ -30,7 +32,10 @@ export const startIncomingCleanup = async (
   { mode, maxAgeHours, intervalMinutes, dryRun }: IncomingCleanupOptions,
   log: Logger
 ): Promise<{ by: 'off' | 'rule' | 'service'; stop: () => void }> => {
-  const off = (by: 'off' | 'rule'): { by: 'off' | 'rule'; stop: () => void } => ({ by, stop: () => undefined });
+  const off = (by: 'off' | 'rule'): { by: 'off' | 'rule'; stop: () => void } => {
+    incomingCleanupInfo.set({ by }, 1);
+    return { by, stop: () => undefined };
+  };
   const dryRunNote = dryRun ? ' (dry run)' : '';
 
   if (mode === 'off') {
@@ -71,6 +76,7 @@ export const startIncomingCleanup = async (
   log.info(
     `Incoming bucket ${bucket}: files older than ${maxAgeHours} h deleted by the service every ${intervalMinutes} min${dryRunNote}`
   );
+  incomingCleanupInfo.set({ by: 'service' }, 1);
   let running = false;
   const run = async (): Promise<void> => {
     // a run of a big bucket may last longer than the interval
@@ -80,6 +86,9 @@ export const startIncomingCleanup = async (
     running = true;
     try {
       const total = await cleanIncoming(client, bucket, maxAgeHours * HOUR, { dryRun });
+      if (!dryRun) {
+        incomingCleanupDeleted.inc(total);
+      }
       log.info(`Incoming bucket ${bucket}: ${total} files ${dryRun ? 'would be deleted (dry run)' : 'deleted'}`);
     } catch (error) {
       log.error(`Incoming bucket ${bucket}: cleanup failed`, error);

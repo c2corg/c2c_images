@@ -5,7 +5,7 @@ import multer from 'multer';
 
 import { ALLOWED_ORIGINS, TRUST_PROXY } from '../config.js';
 import { log } from '../log.js';
-import { promErrorsCounter, promHttpReporter } from '../metrics/prometheus.js';
+import { promErrorsCounter, promHttpReporter, promRefusedUploadsCounter } from '../metrics/prometheus.js';
 
 import { router } from './routes.js';
 
@@ -35,7 +35,6 @@ const logRequest: RequestHandler = (req, _res, next) => {
 // Errors are answered as plain text: the message of HTTP errors, a generic message for anything else
 const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _next) => {
   log.error('[express]', error);
-  promErrorsCounter.inc();
 
   let status = 500;
   // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -45,6 +44,10 @@ const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _next) => 
   } else if (error instanceof multer.MulterError) {
     status = error.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
     message = error.message;
+    promRefusedUploadsCounter.inc({ reason: status === 413 ? 'size' : 'format' });
+  }
+  if (status >= 500) {
+    promErrorsCounter.inc({ kind: 'request' });
   }
   if (status >= 500 && !['development', 'demo'].includes(process.env['NODE_ENV'] ?? '')) {
     message = 'Internal server error';
