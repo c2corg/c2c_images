@@ -1,36 +1,11 @@
 import type { Server } from 'node:http';
 
-import { retry, type ErrorCallback } from 'async';
-
 import { DISABLE_PROMETHEUS_METRICS, METRICS_PATH, METRICS_PORT, SERVICE_PORT } from './config.js';
 import { app, setShuttingDown } from './http/app.js';
+import { closeServer } from './http/shutdown.js';
 import { sharp } from './image/sharp.js';
 import { log } from './log.js';
 import { metricsApp } from './metrics/metrics.js';
-
-const closeServer = async (server: Server): Promise<void> => {
-  const checkPendingRequests = (callback: ErrorCallback<Error | undefined>): void => {
-    server.getConnections((err: Error | null, pendingRequests: number) => {
-      if (err) {
-        callback(err);
-      } else if (pendingRequests) {
-        callback(new Error(`Number of pending requests: ${pendingRequests}`));
-      } else {
-        callback();
-      }
-    });
-  };
-
-  return new Promise<void>((resolve, reject) => {
-    retry({ times: 10, interval: 1000 }, checkPendingRequests, (error?: Error | null) => {
-      if (error) {
-        server.close(() => reject(error));
-      } else {
-        server.close(() => resolve());
-      }
-    });
-  });
-};
 
 const closeGracefully = async (signal: string, ...servers: Server[]): Promise<void> => {
   log.info(`Received signal to terminate: ${signal}`);
@@ -38,7 +13,7 @@ const closeGracefully = async (signal: string, ...servers: Server[]): Promise<vo
   setShuttingDown(true);
 
   try {
-    await Promise.all(servers.map(closeServer));
+    await Promise.all(servers.map(async server => closeServer(server)));
   } catch (error) {
     log.error('Error in graceful shutdown ', error);
   }
