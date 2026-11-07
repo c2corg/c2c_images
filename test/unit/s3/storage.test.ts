@@ -101,3 +101,20 @@ describe('S3 metrics', () => {
     expect(await metricValue(s3RequestDuration, { operation: 'head', outcome: 'not_found' })).toBe(before + 1);
   });
 });
+
+describe('S3Storage keys', () => {
+  test('lists the keys in order, after a key', async () => {
+    const storage = new S3Storage(process.env['ACTIVE_BUCKET']!, getS3Params('S3'), ObjectCannedACL.public_read);
+    const prefix = generateUniqueKeyPrefix();
+    for (const key of [`${prefix}.jpg`, `${prefix}BI.avif`, `${prefix}BI.jpg`]) {
+      await storage.put(key, 'test/data/violin.jpg');
+    }
+    const keys: string[] = [];
+    for await (const key of storage.keys(`${prefix}.jpg`)) {
+      if (key.startsWith(prefix)) {
+        keys.push(key);
+      }
+    }
+    expect(keys).toEqual([`${prefix}BI.avif`, `${prefix}BI.jpg`]);
+  });
+});

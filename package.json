@@ -13,6 +13,7 @@
     "test:all": "vitest run",
     "test:ci": "vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit/js-results.xml",
     "clean:incoming": "node ./dist/scripts/clean.js",
+    "backfill:avif": "node ./dist/scripts/backfill-avif.js",
     "prepare": "husky",
     "preversion": "npm run build && npm run lint && npm run test",
     "postversion": "git push --follow-tags --no-verify",
