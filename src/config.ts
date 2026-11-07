@@ -96,9 +96,10 @@ const Env = z.object({
 
   RESIZING_CONFIG: json(z.array(ResizeConfig).nonempty()).default(DEFAULT_RESIZING_CONFIG),
   CACHE_CONTROL: z.string().default('public, max-age=3600'),
-  // Quality of the thumbnails, per format: the scales differ (AVIF 60 looks like JPEG 85-90). JPEG through mozjpeg.
-  JPEG_QUALITY: quality(90),
-  AVIF_QUALITY: quality(60),
+  // Quality of the thumbnails, per format: the scales differ (AVIF 55 looks like JPEG 80-85). JPEG through mozjpeg.
+  // Chosen on photos of the site (c2corg/c2c_images#55): the conservative side of the usual web values, for terrain detail.
+  JPEG_QUALITY: quality(82),
+  AVIF_QUALITY: quality(55),
   WEBP_QUALITY: quality(80),
   // CPU spent by the AVIF encoder, 0 (fast) to 9 (small files)
   AVIF_EFFORT: z.coerce.number().int().min(0).max(9).default(4),
