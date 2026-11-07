@@ -69,8 +69,12 @@ _PREFIX_`_DEFAULT_REGION`: Default region for corresponding prefix.
 `API_SECRET_KEY`: (required) API secret key, needed to publish images on the
 active bucket.
 
-`RESIZING_CONFIG`: The thumbnail sizes, in JSON: a list of
-`{ "suffix": "BI", "width": 1500, "height": 1500, "fit": "inside", "quality": 90 }`.
+`RESIZING_CONFIG`: The thumbnail sizes, in JSON, for example:
+
+```json
+[{ "suffix": "BI", "width": 1500, "height": 1500, "fit": "inside", "quality": 90 }]
+```
+
 `fit`: `inside` keeps the proportions within the size, without enlarging;
 `cover` fills the size, cropped around the center. `quality` (JPEG, WebP,
 AVIF) is optional, `90` by default. Default: `BI` 1500x1500 and `MI` 400x400
