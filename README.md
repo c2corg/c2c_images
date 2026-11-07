@@ -263,6 +263,24 @@ Use `docker build` to build an image of the service.
 
 Use `npm version`.
 
+## AVIF backfill
+
+`npm run backfill:avif` (`node scripts/backfill-avif.js` in the image) renders
+the missing AVIF thumbnails of the published images, from their originals, in
+the order of their keys:
+
+- `--dry-run`: only count the images without their AVIF thumbnails;
+- `--limit=<n>`: stop after `n` images;
+- `--start-after=<key>`: resume after the last image done (each progress
+  line gives it, and so does the end of a stopped run);
+- `--concurrency=<n>`: images rendered at the same time (default `1`);
+- `--pause-ms=<ms>`: pause between two batches;
+- `--reencode-jpeg`: also render again the JPEG thumbnails, with the current
+  encoder.
+
+SIGINT and SIGTERM stop it after the current batch. `AVIF_QUALITY` and
+`AVIF_EFFORT` apply as for the uploads.
+
 ## Prometheus metrics
 
 Prometheus metrics are exposed on port `METRICS_PORT` with path

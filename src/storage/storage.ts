@@ -7,9 +7,11 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   ObjectCannedACL,
   PutObjectCommand,
-  S3Client
+  S3Client,
+  type ListObjectsV2CommandOutput
 } from '@aws-sdk/client-s3';
 import sanitize from 'sanitize-filename';
 import { z } from 'zod';
@@ -26,6 +28,8 @@ export abstract class Storage {
   public abstract copy(key: string, destinationStorage: Storage): Promise<void>;
   public abstract move(key: string, destinationStorage: Storage): Promise<void>;
   public abstract lastModified(key: string): Promise<Date | undefined>;
+  /** The keys of the storage in ascending order, after `startAfter` if given */
+  public abstract keys(startAfter?: string): AsyncGenerator<string>;
 }
 
 export class LocalStorage implements Storage {
@@ -84,6 +88,18 @@ export class LocalStorage implements Storage {
   public async lastModified(key: string): Promise<Date> {
     const stats = await fsPromises.stat(this.path(key));
     return stats.mtime;
+  }
+
+  public async *keys(startAfter?: string): AsyncGenerator<string> {
+    const names = (await fsPromises.readdir(this.#baseDirectory, { withFileTypes: true }))
+      .filter(entry => entry.isFile())
+      .map(entry => entry.name)
+      .sort();
+    for (const name of names) {
+      if (startAfter === undefined || name > startAfter) {
+        yield name;
+      }
+    }
   }
 }
 
@@ -234,6 +250,31 @@ export class S3Storage implements Storage {
       )
     );
     return LastModified;
+  }
+
+  public async *keys(startAfter?: string): AsyncGenerator<string> {
+    let continuationToken: string | undefined;
+    do {
+      const page: ListObjectsV2CommandOutput = await this.#timed(
+        'list',
+        this.#client.send(
+          new ListObjectsV2Command({
+            Bucket: this.#bucketName,
+            ...(continuationToken
+              ? { ContinuationToken: continuationToken }
+              : startAfter
+                ? { StartAfter: startAfter }
+                : {})
+          })
+        )
+      );
+      for (const { Key } of page.Contents ?? []) {
+        if (Key) {
+          yield Key;
+        }
+      }
+      continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (continuationToken);
   }
 
   public get baseUrl(): string {
