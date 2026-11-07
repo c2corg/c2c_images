@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import sharp from 'sharp';
@@ -107,5 +108,28 @@ describe('Thumbnails', () => {
     for (const suffix of ['BI', 'MI', 'SI']) {
       expect(await imageInfo(tempStorage.path(`${name}${suffix}.jpg`))).toMatchObject({ format: 'jpeg' });
     }
+  });
+});
+
+describe('Encoding', () => {
+  test('JPEG thumbnails go through mozjpeg: progressive, smaller than the plain encoder at the same quality', async () => {
+    const key = await copyToTemp('violin.jpg');
+    const { name } = path.parse(key);
+    await createThumbnail(tempStorage.path(), key, config('BI'));
+    const file = tempStorage.path(`${name}BI.jpg`);
+    const { isProgressive } = await sharp(file).metadata();
+    expect(isProgressive).toBe(true);
+    const plain = await sharp(`test/data/violin.jpg`).autoOrient().jpeg({ quality: 90 }).toBuffer();
+    expect(fs.statSync(file).size).toBeLessThan(plain.length);
+  });
+
+  test('AVIF thumbnails at AVIF_QUALITY: smaller than the JPEG ones', async () => {
+    const key = await copyToTemp('violin.jpg');
+    const { name } = path.parse(key);
+    await createThumbnail(tempStorage.path(), key, config('BI'));
+    await createThumbnail(tempStorage.path(), key, config('BI'), '.avif');
+    const jpeg = fs.statSync(tempStorage.path(`${name}BI.jpg`)).size;
+    const avif = fs.statSync(tempStorage.path(`${name}BI.avif`)).size;
+    expect(avif).toBeLessThan(jpeg / 1.5);
   });
 });

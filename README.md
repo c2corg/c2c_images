@@ -77,9 +77,8 @@ active bucket.
 ```
 
 `fit`: `inside` keeps the proportions within the size, without enlarging;
-`cover` fills the size, cropped around the center. `quality` (JPEG, WebP,
-AVIF) is optional, `90` by default. Default: `BI` 1500x1500 and `MI` 400x400
-inside, `SI` 200x200 cover, as v6_images.
+`cover` fills the size, cropped around the center. Default: `BI` 1500x1500 and
+`MI` 400x400 inside, `SI` 200x200 cover, as v6_images.
 
 `AUTO_ORIENT_ORIGINAL`: `1` to rotate the uploaded image according to the
 EXIF orientation. Default is `0`.
@@ -97,6 +96,11 @@ Default is `24`. `INCOMING_CLEANUP_INTERVAL_MINUTES`: Default is `60`.
 
 `THUMBNAILS_PUBLISH_DELAY`: Delay in ms before publishing the webp/avif
 thumbnails not rendered yet when an image is published. Default is `20000`.
+
+`JPEG_QUALITY`, `AVIF_QUALITY`, `WEBP_QUALITY`: Quality of the thumbnails,
+per format: the scales differ. Defaults are `82` (JPEG, through mozjpeg),
+`55` (AVIF) and `80` (WebP). `AVIF_EFFORT`: CPU spent by the AVIF encoder,
+`0` (fast) to `9` (smaller files). Default is `4`.
 
 `CACHE_CONTROL`: Cache-Control value to be set to all the images uploaded
 to s3. Default is `public, max-age=3600`.
