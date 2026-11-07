@@ -5,6 +5,7 @@ import { RESIZING_CONFIG } from '../config.js';
 
 // <seconds since epoch>_<random number>, optionally a thumbnail suffix. The random number is not zero padded in the
 // keys made by v6_images (up to 2^31 - 1), so its length varies.
+// eslint-disable-next-line security/detect-non-literal-regexp -- the suffixes of RESIZING_CONFIG are checked to be [A-Z]+
 export const keyRegex = new RegExp(
   `^\\d+_\\d+(${RESIZING_CONFIG.map(({ suffix }) => suffix).join('|')})?\\.(jpg|png|gif|svg)$`
 );

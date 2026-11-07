@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="50" viewBox="0 0 100 50" onload="alert(1)">
+  <script>alert(2)</script>
+  <style>@import url(https://evil.example/x.css); rect { stroke: red }</style>
+  <style>circle { fill: url(#g) }</style>
+  <defs>
+    <linearGradient id="g"><stop offset="0" stop-color="blue"/></linearGradient>
+    <circle id="c" r="3"/>
+  </defs>
+  <rect width="100" height="50" fill="url(#g)" onclick="alert(3)" style="filter:url(https://evil.example/f)"/>
+  <a href="javascript:alert(4)"><text x="5" y="20">Hi &amp; bye</text></a>
+  <image href="https://evil.example/track.png" width="10" height="10"/>
+  <image xlink:href="data:image/png;base64,iVBORw0KGgo=" width="10" height="10"/>
+  <use xlink:href="#c"/>
+  <use href="https://evil.example/s.svg#x"/>
+  <foreignObject><div xmlns="http://www.w3.org/1999/xhtml"><iframe src="https://evil.example"></iframe></div></foreignObject>
+  <animate attributeName="href" values="javascript:alert(5)"/>
+  <set attributeName="onmouseover" to="alert(6)"/>
+</svg>

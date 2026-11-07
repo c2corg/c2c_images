@@ -17,6 +17,7 @@ import {
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
 import { rotateImages } from '../image/rotate.js';
+import { sanitizeSvgFile } from '../image/svg.js';
 import { allThumbnailKeys, baseThumbnailKeys, createThumbnails, modernThumbnailKeys } from '../image/thumbnails.js';
 import { log } from '../log.js';
 import {
@@ -88,6 +89,15 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw createHttpError(400, error instanceof Error ? error.message : `${error}`);
+  }
+
+  // only static SVG are kept
+  if (format === 'svg') {
+    try {
+      await sanitizeSvgFile(file.path);
+    } catch {
+      throw createHttpError(400, 'Unsupported image format.');
+    }
   }
 
   // rename with 'official' extension

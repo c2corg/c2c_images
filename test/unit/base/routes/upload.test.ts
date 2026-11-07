@@ -92,4 +92,35 @@ describe('POST /upload', () => {
       expect(await incomingStorage.exists(resizedKey)).toBe(true);
     }
   });
+
+  test('stores the SVG sanitized', async () => {
+    const response = await request(app).post('/upload').attach('file', 'test/data/unsafe.svg');
+    expect(response.status).toBe(200);
+    const { filename: key } = response.body as { filename: string };
+    const stored = fs.readFileSync(path.join(process.env['INCOMING_FOLDER'] ?? '', key), 'utf8');
+    expect(stored).toContain('<svg');
+    expect(stored).not.toContain('<script');
+    expect(stored).not.toContain('evil.example');
+  });
+
+  test('refuses an SVG with external entities', async () => {
+    const response = await request(app)
+      .post('/upload')
+      .attach(
+        'file',
+        Buffer.from(
+          '<?xml version="1.0"?><!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><text>&x;</text></svg>'
+        ),
+        'x.svg'
+      );
+    expect(response.status).toBe(400);
+    expect(response.text).toBe('Unsupported image format.');
+  });
+
+  test('refuses the images over MAX_IMAGE_PIXELS (decompression bombs)', async () => {
+    // 20000 x 20000 pixels in 48 kB
+    const response = await request(app).post('/upload').attach('file', 'test/data/bomb.png');
+    expect(response.status).toBe(400);
+    expect(response.text).toBe('Image too large.');
+  });
 });
