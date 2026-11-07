@@ -5,6 +5,7 @@ import { imageRotationsHistogram } from '../metrics/prometheus.js';
 import { activeStorage, tempStorage } from '../storage/storage.js';
 
 import { encode, openImage, sharp } from './sharp.js';
+import { removeFromTemp } from './temp.js';
 import { allThumbnailKeys, baseThumbnailKeys, createThumbnails, modernThumbnailKeys } from './thumbnails.js';
 
 const uploadImage = async (key: string): Promise<void> => tempStorage.move(key, activeStorage);
@@ -36,29 +37,38 @@ const rotateImage = async (file: string, rotatedFile: string, angle: number): Pr
 };
 
 export const rotateImages = async (originalKey: string, newKey: string, rotation: string): Promise<void> => {
-  await activeStorage.copy(originalKey, tempStorage);
-  const file = tempStorage.path(originalKey);
-  const rotatedFile = tempStorage.path(newKey);
-  const end = imageRotationsHistogram.startTimer();
-  await rotateImage(file, rotatedFile, Number.parseInt(rotation, 10));
-  end();
+  let allRendered: Promise<void[]>;
+  try {
+    await activeStorage.copy(originalKey, tempStorage);
+    const end = imageRotationsHistogram.startTimer();
+    await rotateImage(tempStorage.path(originalKey), tempStorage.path(newKey), Number.parseInt(rotation, 10));
+    end();
+    await removeFromTemp(originalKey);
 
-  // generate new thumbnails from rotated image
-  const { allRendered } = await createThumbnails(rotatedFile);
+    // generate new thumbnails from rotated image
+    ({ allRendered } = await createThumbnails(tempStorage.path(newKey)));
+    // handled below, also when the upload fails in the meantime
+    allRendered.catch(() => undefined);
 
-  // upload image and thumbnails to active storage once rendered
-  await uploadOriginalAndBaseThumbnails(newKey);
+    // upload image and thumbnails to active storage once rendered
+    await uploadOriginalAndBaseThumbnails(newKey);
+  } catch (error) {
+    await removeFromTemp(originalKey, newKey);
+    throw error;
+  }
 
   // delete old images from active bucket
   await Promise.all(
-    [originalKey, ...allThumbnailKeys(originalKey)].map(key =>
+    [originalKey, ...allThumbnailKeys(originalKey)].map(async key =>
       activeStorage.delete(key).catch(() => log.error(`Deleting ${key} failed`))
     )
   );
 
   allRendered
-    .then(async () =>
-      Promise.all([tempStorage.delete(originalKey), tempStorage.delete(newKey), uploadModernThumbnails(newKey)])
-    )
-    .catch(() => log.error(`Uploading some modern thumbnails for ${newKey} failed`));
+    .then(async () => Promise.all([tempStorage.delete(newKey), uploadModernThumbnails(newKey)]))
+    .catch(async () => {
+      log.error(`Uploading some modern thumbnails for ${newKey} failed`);
+      await removeFromTemp(newKey);
+    })
+    .catch((error: unknown) => log.error(error));
 };

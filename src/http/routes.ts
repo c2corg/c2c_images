@@ -18,6 +18,7 @@ import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
 import { rotateImages } from '../image/rotate.js';
 import { sanitizeSvgFile } from '../image/svg.js';
+import { removeFromTemp } from '../image/temp.js';
 import { allThumbnailKeys, baseThumbnailKeys, createThumbnails, modernThumbnailKeys } from '../image/thumbnails.js';
 import { log } from '../log.js';
 import {
@@ -104,23 +105,32 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
   const originalKey = `${keyPrefix}.${format}`;
   fs.renameSync(file.path, tempStorage.path(originalKey));
 
-  // auto orient
-  if (AUTO_ORIENT_ORIGINAL && format === 'jpg') {
-    await autoOrient(tempStorage.path(originalKey));
+  try {
+    // auto orient
+    if (AUTO_ORIENT_ORIGINAL && format === 'jpg') {
+      await autoOrient(tempStorage.path(originalKey));
+    }
+
+    // create resized images
+    const { allRendered } = await createThumbnails(tempStorage.path(originalKey));
+    // handled below, also when the upload fails in the meantime
+    allRendered.catch(() => undefined);
+
+    log.debug(`${keyPrefix} - uploading original file`);
+    await uploadOriginalAndBaseThumbnails(originalKey);
+
+    allRendered
+      .then(async () => uploadModernThumbnails(originalKey))
+      .catch(async (error: unknown) => {
+        log.error(error);
+        promErrorsCounter.inc();
+        await removeFromTemp(originalKey);
+      })
+      .catch((error: unknown) => log.error(error));
+  } catch (error) {
+    await removeFromTemp(originalKey);
+    throw error;
   }
-
-  // create resized images
-  const { allRendered } = await createThumbnails(tempStorage.path(originalKey));
-
-  log.debug(`${keyPrefix} - uploading original file`);
-
-  await uploadOriginalAndBaseThumbnails(originalKey);
-  allRendered
-    .then(async () => uploadModernThumbnails(originalKey))
-    .catch(error => {
-      log.error(error);
-      promErrorsCounter.inc();
-    });
 
   log.debug(`${keyPrefix} - returning response`);
 
