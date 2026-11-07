@@ -5,3 +5,4 @@ process.env['GENERATE_WEBP'] = '1';
 process.env['AUTO_ORIENT_ORIGINAL'] = '1';
 process.env['ALLOWED_ORIGINS'] = '*';
 process.env['THUMBNAILS_PUBLISH_DELAY'] = '1000';
+process.env['MAX_UPLOAD_SIZE'] = '100000';

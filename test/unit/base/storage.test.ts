@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 import { beforeAll, describe, expect, test } from 'vitest';
 
-import { generateUniqueKeyPrefix } from '../../../src/koa/utils.js';
+import { generateUniqueKeyPrefix } from '../../../src/http/utils.js';
 import { LocalStorage, tempStorage } from '../../../src/storage/storage.js';
 
 const key = `${generateUniqueKeyPrefix()}.png`;

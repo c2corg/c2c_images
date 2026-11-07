@@ -4,7 +4,7 @@ import { ObjectCannedACL } from '@aws-sdk/client-s3';
 import request from 'supertest';
 import { beforeAll, describe, expect, test } from 'vitest';
 
-import { generateUniqueKeyPrefix } from '../../../src/koa/utils.js';
+import { generateUniqueKeyPrefix } from '../../../src/http/utils.js';
 import { getS3Params, S3Storage, tempStorage } from '../../../src/storage/storage.js';
 
 const key = `${generateUniqueKeyPrefix()}.png`;

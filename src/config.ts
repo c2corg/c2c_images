@@ -17,6 +17,22 @@ if (!process.env['STORAGE_BACKEND']) {
 }
 export const STORAGE_BACKEND = process.env['STORAGE_BACKEND'];
 export const TEMP_FOLDER = process.env['TEMP_FOLDER'] || `${os.tmpdir()}/images/temp`;
+// in bytes, 200 MiB as before (the default of koa-body)
+export const MAX_UPLOAD_SIZE = Number.parseInt(process.env['MAX_UPLOAD_SIZE'] ?? '', 10) || 200 * 1024 * 1024;
+
+// The proxies whose X-Forwarded-For header is trusted (Express' "trust proxy" setting): a number of hops, true or false, or a
+// comma-separated list of addresses, subnets or names (loopback, linklocal, uniquelocal). Default: the private networks,
+// where HAProxy is.
+const parseTrustProxy = (value: string): boolean | number | string => {
+  if (/^\d+$/.test(value)) {
+    return Number.parseInt(value, 10);
+  }
+  if (value === 'true' || value === 'false') {
+    return value === 'true';
+  }
+  return value;
+};
+export const TRUST_PROXY = parseTrustProxy(process.env['TRUST_PROXY'] || 'loopback, uniquelocal');
 
 // See documentation at http://www.imagemagick.org/Usage/resize
 // If set via environment variable, should be in json format

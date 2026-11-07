@@ -1,10 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import Router from '@koa/router';
-import { koaBody } from 'koa-body';
+import express, { Router, type RequestHandler } from 'express';
+import createHttpError from 'http-errors';
+import multer from 'multer';
 
-import { AUTO_ORIENT_ORIGINAL, THUMBNAILS_PUBLISH_DELAY } from '../config.js';
+import { AUTO_ORIENT_ORIGINAL, MAX_UPLOAD_SIZE, TEMP_FOLDER, THUMBNAILS_PUBLISH_DELAY } from '../config.js';
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
 import { rotateImages } from '../image/rotate.js';
@@ -24,19 +25,35 @@ import { apiOnly } from './apionly.js';
 import { generateUniqueKeyPrefix } from './utils.js';
 import { DeleteBody, PublishBody, RotateBody, UploadFiles, validate } from './validation.js';
 
-export const router = new Router();
-const bodyParser = koaBody({ multipart: true });
+export const router = Router();
+// v6_api posts form-encoded bodies, the filenames of /delete as repeated fields
+const bodyParsers = [express.urlencoded({ extended: false }), express.json()] as const;
+const fileParser = multer({ dest: TEMP_FOLDER, limits: { fileSize: MAX_UPLOAD_SIZE, files: 1 } }).single('file');
 
 // Health endpoint
-router.get('/ping', ctx => {
-  ctx.body = 'Pong!';
+router.get('/ping', (_req, res) => {
+  res.type('text/plain').send('Pong!');
 });
 
 // Uploaded images are verified, resized images generated and stored in the incoming storage
 // This endpoint is called directly by the UI.
-router.post('/upload', bodyParser, async ctx => {
+router.post('/upload', fileParser, async (req, res) => {
+  try {
+    res.json(await upload(req.file));
+  } finally {
+    // the file received, if it was not renamed. Multer names it in the temp folder; the check keeps any other path out.
+    if (req.file) {
+      const received = path.resolve(TEMP_FOLDER, path.basename(req.file.path));
+      if (received.startsWith(path.resolve(TEMP_FOLDER) + path.sep)) {
+        await fs.promises.rm(received, { force: true });
+      }
+    }
+  }
+});
+
+const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: true; filename: string }> => {
   const keyPrefix = generateUniqueKeyPrefix();
-  const { file } = validate(ctx, UploadFiles, 'files');
+  const { file } = validate(uploadedFile && { file: uploadedFile }, UploadFiles);
 
   const uploadImage = async (key: string): Promise<void> => tempStorage.move(key, incomingStorage);
   const uploadOriginalAndBaseThumbnails = async (key: string): Promise<void[]> =>
@@ -46,16 +63,15 @@ router.post('/upload', bodyParser, async ctx => {
 
   let format: string;
   try {
-    format = await getFileFormat(file.filepath);
+    format = await getFileFormat(file.path);
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    ctx.throw(400, error instanceof Error ? error.message : `${error}`);
-    return;
+    throw createHttpError(400, error instanceof Error ? error.message : `${error}`);
   }
 
   // rename with 'official' extension
   const originalKey = `${keyPrefix}.${format}`;
-  fs.renameSync(file.filepath, tempStorage.path(originalKey));
+  fs.renameSync(file.path, tempStorage.path(originalKey));
 
   // auto orient
   if (AUTO_ORIENT_ORIGINAL && format === 'jpg') {
@@ -78,22 +94,22 @@ router.post('/upload', bodyParser, async ctx => {
   log.debug(`${keyPrefix} - returning response`);
 
   promUploadedImagesCounter.inc({ format }, 1);
-  ctx.body = {
+  return {
     success: true,
     filename: `${keyPrefix}.${format}`
   };
-});
+};
 
 // Publish images from incoming storage to active storage
 // Only called by api service
-router.post('/publish', bodyParser, apiOnly, async ctx => {
-  const { filename: key } = validate(ctx, PublishBody);
+router.post('/publish', ...bodyParsers, apiOnly, async (req, res) => {
+  const { filename: key } = validate(req.body, PublishBody);
 
   const published = await activeStorage.exists(key);
   const incoming = await incomingStorage.exists(key);
 
   if (!published && !incoming) {
-    ctx.throw(404, 'Unknown image.');
+    throw createHttpError(404, 'Unknown image.');
   }
 
   if (!published) {
@@ -138,13 +154,13 @@ router.post('/publish', bodyParser, apiOnly, async ctx => {
     promPublishedImagesCounter.inc(1);
   }
 
-  ctx.body = { success: true };
+  res.json({ success: true });
 });
 
 // Delete a file from active storage
 // Only called by api service
-router.post('/delete', bodyParser, apiOnly, async ctx => {
-  const { filenames: keys } = validate(ctx, DeleteBody);
+router.post('/delete', ...bodyParsers, apiOnly, async (req, res) => {
+  const { filenames: keys } = validate(req.body, DeleteBody);
 
   // as v6_images: no check that the files exist, the archives of a document may list files deleted since
   await Promise.all(
@@ -154,23 +170,23 @@ router.post('/delete', bodyParser, apiOnly, async ctx => {
   );
 
   promDeletedImagesCounter.inc(1);
-  ctx.body = { success: true };
+  res.json({ success: true });
 });
 
 // Rotate the image and return a new key
 // Only called by api service
-router.post('/rotate', bodyParser, apiOnly, async ctx => {
-  const { rotation = '90', filename: key } = validate(ctx, RotateBody);
+router.post('/rotate', ...bodyParsers, apiOnly, async (req, res) => {
+  const { rotation = '90', filename: key } = validate(req.body, RotateBody);
   const { ext } = path.parse(key);
 
   if (ext === '.svg') {
-    ctx.throw(400, 'SVG images rotation is not supported.');
+    throw createHttpError(400, 'SVG images rotation is not supported.');
   }
 
   const published = await activeStorage.exists(key);
 
   if (!published) {
-    ctx.throw(404, 'Not found');
+    throw createHttpError(404, 'Not found');
   }
 
   const newKey = `${generateUniqueKeyPrefix()}${ext}`;
@@ -178,5 +194,16 @@ router.post('/rotate', bodyParser, apiOnly, async ctx => {
   await rotateImages(key, newKey, rotation);
 
   promRotatedImagesCounter.inc(1);
-  ctx.body = { success: true, filename: newKey };
+  res.json({ success: true, filename: newKey });
 });
+
+// Other methods on the known paths, with an Allow header
+const methodNotAllowed =
+  (allow: string): RequestHandler =>
+  (_req, res) => {
+    res.set('Allow', allow).status(405).type('text/plain').send('Method Not Allowed');
+  };
+router.all('/ping', methodNotAllowed('HEAD, GET'));
+for (const path of ['/upload', '/publish', '/delete', '/rotate']) {
+  router.all(path, methodNotAllowed('POST'));
+}

@@ -3,19 +3,19 @@ import { randomInt } from 'node:crypto';
 import request from 'supertest';
 import { describe, expect, test } from 'vitest';
 
-import { koa } from '../../../../src/koa/app.js';
-import { generateUniqueKeyPrefix } from '../../../../src/koa/utils.js';
+import { app } from '../../../../src/http/app.js';
+import { generateUniqueKeyPrefix } from '../../../../src/http/utils.js';
 import { activeStorage } from '../../../../src/storage/storage.js';
 
 describe('POST /delete', () => {
   test('requires api secret', async () => {
-    const response = await request(koa.callback()).post('/delete').send({ secret: 'bad secret' });
+    const response = await request(app).post('/delete').send({ secret: 'bad secret' });
     expect(response.text).toBe('Bad secret key.');
     expect(response.status).toBe(403);
   });
 
   test('requires filenames', async () => {
-    const response = await request(koa.callback()).post('/delete').send({ secret: 'my secret' });
+    const response = await request(app).post('/delete').send({ secret: 'my secret' });
     expect(response.text).toBe('Bad parameter filenames: Invalid input.');
     expect(response.status).toBe(400);
   });
@@ -24,7 +24,7 @@ describe('POST /delete', () => {
     const key = generateUniqueKeyPrefix();
     await activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
     await activeStorage.put(`${key}SI.jpg`, 'test/data/violin.jpg');
-    const response = await request(koa.callback())
+    const response = await request(app)
       .post('/delete')
       .send({ secret: 'my secret', filenames: `${key}.jpg` });
     expect(JSON.parse(response.text)).toEqual({ success: true });
@@ -38,7 +38,7 @@ describe('POST /delete', () => {
     const key2 = generateUniqueKeyPrefix();
     await activeStorage.put(`${key1}.jpg`, 'test/data/violin.jpg');
     await activeStorage.put(`${key2}.jpg`, 'test/data/violin.jpg');
-    const response = await request(koa.callback())
+    const response = await request(app)
       .post('/delete')
       .send({ secret: 'my secret', filenames: [`${key1}.jpg`, `${key2}.jpg`] });
     expect(JSON.parse(response.text)).toEqual({ success: true });
@@ -56,7 +56,7 @@ describe('POST /delete', () => {
       await activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
       await activeStorage.put(`${key}BI.jpg`, 'test/data/violin.jpg');
     }
-    const response = await request(koa.callback())
+    const response = await request(app)
       .post('/delete')
       .type('form')
       .send(`secret=my+secret&filenames=${keys[0]}.jpg&filenames=${keys[1]}.jpg`);
@@ -72,7 +72,7 @@ describe('POST /delete', () => {
   test('deletes the existing files when some are missing', async () => {
     const key = generateUniqueKeyPrefix();
     await activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
-    const response = await request(koa.callback())
+    const response = await request(app)
       .post('/delete')
       .type('form')
       .send(`secret=my+secret&filenames=1588000000_404.jpg&filenames=${key}.jpg`);

@@ -11,9 +11,9 @@ import {
   isWebpWriteSupported
 } from './exec/imagemagick.js';
 import { rsvgConvertVersion } from './exec/librsvg.js';
-import { koa } from './koa/app.js';
+import { app, setShuttingDown } from './http/app.js';
 import { log } from './log.js';
-import { metricsKoa } from './metrics/metrics.js';
+import { metricsApp } from './metrics/metrics.js';
 
 const closeServer = async (server: Server): Promise<void> => {
   const checkPendingRequests = (callback: ErrorCallback<Error | undefined>): void => {
@@ -42,7 +42,7 @@ const closeServer = async (server: Server): Promise<void> => {
 const closeGracefully = async (signal: string, ...servers: Server[]): Promise<void> => {
   log.info(`Received signal to terminate: ${signal}`);
 
-  koa.context['shuttingDown'] = true;
+  setShuttingDown(true);
 
   try {
     await Promise.all(servers.map(closeServer));
@@ -64,12 +64,12 @@ log.info(`Using ${fileCmdExists ? 'file' : 'imagemagick'} to detect file formats
 const servers: Server[] = [];
 
 // Listen for REST request
-servers.push(koa.listen(SERVICE_PORT));
+servers.push(app.listen(SERVICE_PORT));
 log.info(`Service starting on port ${SERVICE_PORT}`);
 
 // Export metrics for prometheus
 if (!DISABLE_PROMETHEUS_METRICS) {
-  servers.push(metricsKoa.listen(METRICS_PORT));
+  servers.push(metricsApp.listen(METRICS_PORT));
   log.info(`Prometheus metrics can be scrapped at port ${METRICS_PORT} path ${METRICS_PATH}`);
 }
 
