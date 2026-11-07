@@ -7,8 +7,11 @@ import { app } from '../../../../src/http/app.js';
 import { generateUniqueKeyPrefix } from '../../../../src/http/utils.js';
 import { keyRegex } from '../../../../src/http/validation.js';
 import { allThumbnailKeys, baseThumbnailKeys } from '../../../../src/image/thumbnails.js';
-import { activeStorage, tempStorage } from '../../../../src/storage/storage.js';
+import { activeStorage } from '../../../../src/storage/storage.js';
 import { imageInfo } from '../../../helpers/image.js';
+
+// read in place: the temp folder is where the rotation still works in the background
+const activePath = (key: string): string => path.join(process.env['ACTIVE_FOLDER'] ?? '', key);
 
 describe('POST /rotate', () => {
   test('requires api secret', async () => {
@@ -75,10 +78,8 @@ describe('POST /rotate', () => {
     }
 
     // check that the image has been actually rotated
-    await activeStorage.move(`${newKey}.png`, tempStorage);
-    await activeStorage.move(`${newKey}MI.png`, tempStorage);
-    expect(await imageInfo(tempStorage.path(`${newKey}.png`))).toMatchObject({ size: '551x1151' });
-    expect(await imageInfo(tempStorage.path(`${newKey}MI.png`))).toMatchObject({ size: '191x400' });
+    expect(await imageInfo(activePath(`${newKey}.png`))).toMatchObject({ size: '551x1151' });
+    expect(await imageInfo(activePath(`${newKey}MI.png`))).toMatchObject({ size: '191x400' });
   });
 
   test.each([
@@ -92,7 +93,6 @@ describe('POST /rotate', () => {
     const response = await request(app).post('/rotate').send({ secret: 'my secret', filename: key, rotation });
     expect(response.status).toBe(200);
     const { filename: newKey } = response.body as { filename: string };
-    await activeStorage.move(newKey, tempStorage);
-    expect(await imageInfo(tempStorage.path(newKey))).toMatchObject(expected);
+    expect(await imageInfo(activePath(newKey))).toMatchObject(expected);
   });
 });

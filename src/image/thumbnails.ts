@@ -62,14 +62,24 @@ export const createThumbnail = async (
  * An additional promise (allRendered) can be used to be notified
  * when modern images are available.
  */
+// all the promises settled (no rendering still writing its file), rejected with the first error if any
+const allSettled = async (promises: Promise<void>[]): Promise<void[]> => {
+  const results = await Promise.allSettled(promises);
+  const failure = results.find(result => result.status === 'rejected');
+  if (failure) {
+    throw failure.reason;
+  }
+  return results.map(() => undefined);
+};
+
 export const createThumbnails = async (file: string): Promise<{ allRendered: Promise<void[]> }> => {
   const { base: key, dir } = path.parse(file);
 
   // generate thumbnails with default format
-  await Promise.all(RESIZING_CONFIG.map(async config => createThumbnail(dir, key, config)));
+  await allSettled(RESIZING_CONFIG.map(async config => createThumbnail(dir, key, config)));
 
   // "modern" thumbnail formats, asynchronously
-  const allRendered = Promise.all(
+  const allRendered = allSettled(
     RESIZING_CONFIG.flatMap(config => modernFormats().map(async format => createThumbnail(dir, key, config, format)))
   );
 
