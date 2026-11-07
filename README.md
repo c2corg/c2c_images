@@ -261,8 +261,27 @@ Use `npm version`.
 
 ## Prometheus metrics
 
-Several prometheus metrics are exposed on port `METRICS_PORT` with path
-`METRICS_PATH` (defaults to <http://localhost:8081/metrics>).
+Prometheus metrics are exposed on port `METRICS_PORT` with path
+`METRICS_PATH` (defaults to <http://localhost:8081/metrics>). Their names all
+start with `c2corg_images_`, and their labels have a few values each (no image
+key, address or user agent):
+
+- `http_request_duration_seconds` (`method`, `route`, `code`): `route` is the
+  route pattern, `unmatched` for unknown paths;
+- `uploaded_images_total` (`format`), `refused_uploads_total` (`reason`:
+  `format`, `svg`, `size`, `pixels`, `rate`), `rate_limited_requests_total`
+  (`route`);
+- `published_images_total`, `unpublished_thumbnails_total`,
+  `deleted_images_total`, `rotated_images_total`;
+- `thumbnail_duration_seconds` (`format`, `size`),
+  `rotation_duration_seconds`, `autoorient_duration_seconds`;
+- `s3_request_duration_seconds` (`operation`, `outcome`: `ok`, `not_found`,
+  `error`);
+- `incoming_cleanup_info` (`by`: `rule`, `service`, `off`),
+  `incoming_cleanup_deleted_files_total`;
+- `errors_total` (`kind`: `request` for the 500 answers, `background` for the
+  work after the answer);
+- `service_info` (`version`, `env`), and the process and Node.js metrics.
 
 You can disable all metrics by setting `DISABLE_PROMETHEUS_METRICS` to `1`.
 

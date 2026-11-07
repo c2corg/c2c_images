@@ -2,6 +2,8 @@ import request from 'supertest';
 import { describe, expect, test } from 'vitest';
 
 import { app } from '../../../src/http/app.js';
+import { promRefusedUploadsCounter } from '../../../src/metrics/prometheus.js';
+import { metricValue } from '../../helpers/metrics.js';
 
 describe('OPTIONS /upload', () => {
   test('returns CORS options with *', async () => {
@@ -18,8 +20,10 @@ describe('OPTIONS /upload', () => {
 
 describe('POST /upload', () => {
   test('refuses files over MAX_UPLOAD_SIZE', async () => {
+    const before = await metricValue(promRefusedUploadsCounter, { reason: 'size' });
     const response = await request(app).post('/upload').attach('file', 'test/data/pipe_organ.svg');
     expect(response.status).toBe(413);
+    expect(await metricValue(promRefusedUploadsCounter, { reason: 'size' })).toBe(before + 1);
     expect(response.text).toBe('File too large');
   });
 });

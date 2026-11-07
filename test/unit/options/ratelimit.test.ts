@@ -2,6 +2,8 @@ import request from 'supertest';
 import { describe, expect, test } from 'vitest';
 
 import { app } from '../../../src/http/app.js';
+import { promRateLimitedCounter, promRefusedUploadsCounter } from '../../../src/metrics/prometheus.js';
+import { metricValue } from '../../helpers/metrics.js';
 
 // UPLOAD_RATE_LIMIT is 5 and AUTH_FAILURE_RATE_LIMIT 3 in these tests. Each test file has its own counters.
 describe('rate limits', () => {
@@ -9,9 +11,13 @@ describe('rate limits', () => {
     for (let i = 0; i < 5; i++) {
       expect((await request(app).post('/upload')).status).toBe(400);
     }
+    const limited = await metricValue(promRateLimitedCounter, { route: '/upload' });
+    const refused = await metricValue(promRefusedUploadsCounter, { reason: 'rate' });
     const response = await request(app).post('/upload');
     expect(response.status).toBe(429);
     expect(response.get('RateLimit-Policy')).toMatch(/q=5; w=60/);
+    expect(await metricValue(promRateLimitedCounter, { route: '/upload' })).toBe(limited + 1);
+    expect(await metricValue(promRefusedUploadsCounter, { reason: 'rate' })).toBe(refused + 1);
   });
 
   test('counts only the API requests with a missing or bad secret', async () => {
