@@ -30,7 +30,10 @@ image is associated with an authenticated user.
 
 ## Configuration
 
-Configuration should be set by environment variables:
+Configuration should be set by environment variables. They are checked at
+startup: the service refuses to start with a missing or invalid value, and
+lists them. An empty variable counts as unset. Flags accept `1`, `true`,
+`yes`, `on`, `y`, `enabled` and their opposites (`0`, `false`...).
 
 `STORAGE_BACKEND`: (required) `s3` or `local`
 
@@ -63,8 +66,8 @@ _PREFIX_`_SECRET_KEY`: Secret key for corresponding prefix.
 
 _PREFIX_`_DEFAULT_REGION`: Default region for corresponding prefix.
 
-`API_SECRET_KEY`: API secret key, needed to publish images on the active
-bucket.
+`API_SECRET_KEY`: (required) API secret key, needed to publish images on the
+active bucket.
 
 `RESIZING_CONFIG`: Configuration of the thumbnail names and sizes serialized
 in JSON. See src/config.ts for a description of the format.
@@ -80,11 +83,36 @@ to this format.
 ones. Default is `0`. Ignored if imagemagick does not support writing
 to this format.
 
+`PREFER_IDENTIFY_OVER_FILE`: `1` to detect the file formats with imagemagick
+even if `file` is installed. Default is `0`.
+
+`THUMBNAILS_PUBLISH_DELAY`: Delay in ms before publishing the webp/avif
+thumbnails not rendered yet when an image is published. Default is `20000`.
+
 `CACHE_CONTROL`: Cache-Control value to be set to all the images uploaded
 to s3. Default is `public, max-age=3600`.
 
 `ALLOWED_ORIGINS`: Comma separated list of allowed origins for CORS requests.
 This is currently only for the `/upload` endpoint. Default is `*`.
+
+`MAX_UPLOAD_SIZE`: Maximum size of an uploaded file, in bytes (413 above).
+Default is `209715200` (200 MiB).
+
+`UPLOAD_RATE_LIMIT`: Uploads per minute and client address, on each instance
+(429 above). Default is `100`.
+
+`AUTH_FAILURE_RATE_LIMIT`: Requests to `/publish`, `/delete` and `/rotate`
+with a missing or bad secret, per minute and client address, on each instance.
+Then all of them are refused (429) until the end of the minute. Default is `10`.
+
+`TRUST_PROXY`: Proxies whose `X-Forwarded-For` header gives the client
+address (Express' `trust proxy`): a number of hops, `true`, `false`, or a
+comma separated list of addresses, subnets or `loopback`, `linklocal`,
+`uniquelocal`. Default is `loopback, uniquelocal` (HAProxy on a private
+network).
+
+`SERVICE_PORT`, `METRICS_PORT`, `METRICS_PATH`: Defaults are `8080`, `8081`
+and `/metrics`. `DISABLE_PROMETHEUS_METRICS`: `1` to disable the metrics.
 
 Here is an example configuration with S3 backend on exoscale:
 
