@@ -3,15 +3,8 @@ import type { Server } from 'node:http';
 import { retry, type ErrorCallback } from 'async';
 
 import { DISABLE_PROMETHEUS_METRICS, METRICS_PATH, METRICS_PORT, SERVICE_PORT } from './config.js';
-import { fileCmdExists } from './exec/file.js';
-import {
-  imageMagickVersion,
-  isAvifWriteSupported,
-  isSvgReadSupported,
-  isWebpWriteSupported
-} from './exec/imagemagick.js';
-import { rsvgConvertVersion } from './exec/librsvg.js';
 import { app, setShuttingDown } from './http/app.js';
+import { sharp } from './image/sharp.js';
 import { log } from './log.js';
 import { metricsApp } from './metrics/metrics.js';
 
@@ -53,13 +46,8 @@ const closeGracefully = async (signal: string, ...servers: Server[]): Promise<vo
   process.kill(process.pid, signal);
 };
 
-// check required tools exist
-log.info('Using rsvg-convert =>', rsvgConvertVersion());
-log.info('Using imagemagick =>', imageMagickVersion());
-log.info(`Webp write is ${isWebpWriteSupported ? '' : 'un'}supported`);
-log.info(`Avif write is ${isAvifWriteSupported ? '' : 'un'}supported`);
-log.info(`Svg read is ${isSvgReadSupported ? '' : 'un'}supported`);
-log.info(`Using ${fileCmdExists ? 'file' : 'imagemagick'} to detect file formats`);
+const { sharp: sharpVersion, vips, rsvg } = sharp.versions;
+log.info(`Using sharp ${sharpVersion}, libvips ${vips}, librsvg ${rsvg ?? 'none'}`);
 
 const servers: Server[] = [];
 

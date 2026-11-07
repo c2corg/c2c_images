@@ -16,8 +16,6 @@ jobs:
       matrix:
         node-version: ['lts/*']
     steps:
-      - name: Install imagemagick and rsvg-convert
-        run: sudo apt-get install -y imagemagick librsvg2-bin
       - name: Checkout
         uses: actions/checkout@v7
       - name: Use Node.js ${{ matrix.node-version }}
@@ -45,9 +43,31 @@ jobs:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: reports/coverage/lcov.info
 
+  docker:
+    # the image works: sharp and its fonts, uploads of each kind
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Build the image
+        run: docker build -t c2c_images:ci .
+      - name: Upload images to a container
+        run: |
+          docker run -d --name images -p 8080:8080 -e STORAGE_BACKEND=local -e INCOMING_FOLDER=/tmp/incoming \
+            -e ACTIVE_FOLDER=/tmp/active -e API_SECRET_KEY=ci c2c_images:ci
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:8080/ping && break; sleep 1; done
+          for f in violin.jpg piano.png animated.gif pipe_organ.svg; do
+            curl -sf -F "file=@test/data/$f" http://localhost:8080/upload | tee /dev/stderr | grep -q '"filename"'
+          done
+          docker exec images ls -l /tmp/incoming
+          test "$(docker exec images ls /tmp/incoming | wc -l)" -eq 16
+      - name: Container logs
+        if: always()
+        run: docker logs images || true
+
   publish:
     # only publish if tests passed
-    needs: test
+    needs: [test, docker]
     # only publish images for tags and main branch
     if: "contains(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'"
     runs-on: ubuntu-latest
@@ -75,7 +95,7 @@ jobs:
           build-args: VERSION=${{ fromJSON(steps.docker_meta.outputs.json).labels['org.opencontainers.image.version'] }}
 
   create-release:
-    needs: test
+    needs: [test, docker]
     if: "startsWith(github.ref, 'refs/tags/v')"
     runs-on: ubuntu-latest
     permissions:

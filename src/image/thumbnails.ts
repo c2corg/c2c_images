@@ -1,32 +1,24 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
 import { GENERATE_AVIF, GENERATE_WEBP, RESIZING_CONFIG, type ResizeConfig } from '../config.js';
-import { isAvifWriteSupported, isWebpWriteSupported, transform } from '../exec/imagemagick.js';
-import { rasterizeSvg } from '../exec/librsvg.js';
 import { log } from '../log.js';
 import { imageGenerationsHistogram } from '../metrics/prometheus.js';
 
+import { encode, openImage } from './sharp.js';
+
+// the thumbnails of an SVG are JPEG, the others keep the format of the image unless asked
 const thumbnailKey = (key: string, suffix: string, format?: string): string => {
   const { ext, name } = path.parse(key);
-  return `${name}${suffix}${ext === '.svg' ? '.jpg' : (format ?? ext)}`;
+  return `${name}${suffix}${format ?? (ext === '.svg' ? '.jpg' : ext)}`;
 };
 
+const modernFormats = (): string[] => [...(GENERATE_AVIF ? ['.avif'] : []), ...(GENERATE_WEBP ? ['.webp'] : [])];
+
 export const baseThumbnailKeys = (key: string): string[] =>
-  RESIZING_CONFIG.flatMap(config => [thumbnailKey(key, config.suffix)]);
+  RESIZING_CONFIG.map(config => thumbnailKey(key, config.suffix));
 
 export const modernThumbnailKeys = (key: string): string[] =>
-  RESIZING_CONFIG.flatMap(config => {
-    const keys: string[] = [];
-    if (GENERATE_AVIF && isAvifWriteSupported) {
-      keys.push(thumbnailKey(key, config.suffix, '.avif'));
-    }
-    if (GENERATE_WEBP && isWebpWriteSupported) {
-      keys.push(thumbnailKey(key, config.suffix, '.webp'));
-    }
-
-    return keys;
-  });
+  RESIZING_CONFIG.flatMap(config => modernFormats().map(format => thumbnailKey(key, config.suffix, format)));
 
 export const allThumbnailKeys = (key: string): string[] => [...baseThumbnailKeys(key), ...modernThumbnailKeys(key)];
 
@@ -36,13 +28,31 @@ export const createThumbnail = async (
   config: ResizeConfig,
   format?: string
 ): Promise<void> => {
+  const { ext } = path.parse(originalKey);
   const originalPath = path.join(dir, originalKey);
   const resizedPath = path.join(dir, thumbnailKey(originalKey, config.suffix, format));
-  const resizeConfig = config.convert;
+  const resizedExt = path.extname(resizedPath);
+  const { width, height, fit, quality } = config;
 
-  log.info(`Creating resized image ${resizedPath} with options ${resizeConfig.join(' ')}`);
-  const end = imageGenerationsHistogram.startTimer({ format: path.extname(resizedPath).slice(1), size: config.suffix });
-  await transform(originalPath, resizedPath, resizeConfig);
+  log.info(`Creating resized image ${resizedPath}, ${fit} ${width}x${height}`);
+  const end = imageGenerationsHistogram.startTimer({ format: resizedExt.slice(1), size: config.suffix });
+
+  // animated GIF stay animated in GIF and WebP (AVIF has no animation in libvips)
+  let image = openImage(originalPath, {
+    svg: ext === '.svg',
+    animated: ext === '.gif' && (resizedExt === '.gif' || resizedExt === '.webp')
+  }).autoOrient();
+  if (ext === '.svg') {
+    image = image.flatten({ background: 'white' });
+  }
+  image = image.resize({
+    width,
+    height,
+    fit,
+    // inside: smaller images are kept as they are; cover: cropped around the center to fill the size
+    withoutEnlargement: fit === 'inside'
+  });
+  await encode(image, resizedExt, quality).toFile(resizedPath);
   end();
 };
 
@@ -53,39 +63,15 @@ export const createThumbnail = async (
  * when modern images are available.
  */
 export const createThumbnails = async (file: string): Promise<{ allRendered: Promise<void[]> }> => {
-  const { base, name, ext, dir } = path.parse(file);
-  let rasterFile: string | undefined;
-  let key = base;
-  if (ext === '.svg') {
-    const svgKey = key;
-    const jpgKey = `${name}.jpg`;
-    rasterFile = path.join(dir, jpgKey);
-    // rasterized svg will actually be a png file,
-    // but it will not be kept and thumbnails will be jpg because of the extension
-    await rasterizeSvg(path.join(dir, svgKey), rasterFile);
-    key = jpgKey;
-  }
+  const { base: key, dir } = path.parse(file);
 
   // generate thumbnails with default format
-  await Promise.all(RESIZING_CONFIG.map(config => createThumbnail(dir, key, config)));
+  await Promise.all(RESIZING_CONFIG.map(async config => createThumbnail(dir, key, config)));
 
   // "modern" thumbnail formats, asynchronously
   const allRendered = Promise.all(
-    RESIZING_CONFIG.flatMap(config => {
-      const promises: Promise<void>[] = [];
-      if (isWebpWriteSupported && GENERATE_WEBP) {
-        promises.push(createThumbnail(dir, key, config, '.webp'));
-      }
-      if (isAvifWriteSupported && GENERATE_AVIF) {
-        promises.push(createThumbnail(dir, key, config, '.avif'));
-      }
-      return promises;
-    })
-  ).finally(() => {
-    if (rasterFile) {
-      fs.unlinkSync(rasterFile);
-    }
-  });
+    RESIZING_CONFIG.flatMap(config => modernFormats().map(async format => createThumbnail(dir, key, config, format)))
+  );
 
   return { allRendered };
 };

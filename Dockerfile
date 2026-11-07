@@ -1,4 +1,4 @@
-FROM node:lts-bullseye-slim AS build
+FROM node:lts-trixie-slim AS build
 RUN apt-get update && apt-get install -y --no-install-recommends dumb-init
 WORKDIR /usr
 COPY package.json package-lock.json tsconfig.json tsconfig.build.json ./
@@ -7,14 +7,12 @@ COPY src ./src
 RUN npm run build
 RUN npm prune --omit "dev"
 
-FROM node:lts-bullseye-slim
+FROM node:lts-trixie-slim
 ARG VERSION
 ENV npm_package_version=${VERSION}
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        file \
-        librsvg2-bin \
-        imagemagick \
+        fontconfig \
         fonts-liberation \
         fonts-dejavu \
         ttf-bitstream-vera \

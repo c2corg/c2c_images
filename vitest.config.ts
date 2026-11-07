@@ -19,15 +19,6 @@ export default defineConfig({
         }
       },
       {
-        // test without using file, even if it exists
-        extends: true,
-        test: {
-          name: 'nofile',
-          include: ['test/unit/base/**/upload.test.ts'],
-          setupFiles: ['test/environment/env-vars.nofile.js']
-        }
-      },
-      {
         // test some options different than from base
         extends: true,
         test: {

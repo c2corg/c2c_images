@@ -1,48 +1,26 @@
 import path from 'node:path';
 
-import { PREFER_IDENTIFY_OVER_FILE } from '../config.js';
-import { fileCmdExists, getMimeType } from '../exec/file.js';
-import { identify, isSvgReadSupported } from '../exec/imagemagick.js';
+import { openImage } from './sharp.js';
 
-const getFormatFromIdentify = async (filename: string): Promise<string> => {
-  const { format } = await identify(filename);
-
+// the format of an uploaded image, from its content: the extension of its key
+export const getFileFormat = async (filename: string): Promise<string> => {
+  let format: string | undefined;
+  try {
+    ({ format } = await openImage(filename).metadata());
+  } catch {
+    throw new Error('Unsupported image format.');
+  }
   switch (format) {
-    case 'JPEG':
+    case 'jpeg':
       return 'jpg';
-    case 'PNG':
-      // Depending on the system and the build configuration of imagemagick, it can
-      // send PNG for SVG files.
-      if (!isSvgReadSupported && filename.endsWith('.svg')) {
-        return 'svg';
-      }
-      return 'png';
-    case 'GIF':
-    case 'SVG':
-      return format.toLowerCase();
+    case 'png':
+    case 'gif':
+    case 'svg':
+      return format;
     default:
-      throw new Error(`Unsupported image format.`);
+      throw new Error('Unsupported image format.');
   }
 };
-
-const getFormatFromFile = async (filename: string): Promise<string> => {
-  const mime = await getMimeType(filename);
-  switch (mime) {
-    case 'image/jpeg':
-      return 'jpg';
-    case 'image/png':
-      return 'png';
-    case 'image/gif':
-      return 'gif';
-    case 'image/svg+xml':
-      return 'svg';
-    default:
-      throw new Error(`Unsupported image format.`);
-  }
-};
-
-// file command is more reliable than image magick if installed
-export const getFileFormat = fileCmdExists && !PREFER_IDENTIFY_OVER_FILE ? getFormatFromFile : getFormatFromIdentify;
 
 export const getMimeTypeFromKey = (key: string): string => {
   const { ext } = path.parse(key);

@@ -16,20 +16,22 @@ const parseTrustProxy = (value: string): boolean | number | string => {
   return value;
 };
 
-// See documentation at http://www.imagemagick.org/Usage/resize
+// A thumbnail size. fit: inside keeps the proportions within width x height, without enlarging; cover fills width x height,
+// cropped around the center. quality: of JPEG, WebP and AVIF.
 const ResizeConfig = z.object({
-  suffix: z.string(),
-  convert: z.string().array()
+  suffix: z.string().regex(/^[A-Z]+$/),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  fit: z.enum(['inside', 'cover']),
+  quality: z.number().int().min(1).max(100).default(90)
 });
 export type ResizeConfig = z.infer<typeof ResizeConfig>;
 
+// as v6_images: big, medium and small images
 const DEFAULT_RESIZING_CONFIG: ResizeConfig[] = [
-  { suffix: 'BI', convert: ['-thumbnail', '1500x1500>', '-quality', '90'] },
-  { suffix: 'MI', convert: ['-thumbnail', '400x400>', '-quality', '90'] },
-  {
-    suffix: 'SI',
-    convert: ['-thumbnail', '200x200^', '-gravity', 'center', '-extent', '200x200', '-quality', '90']
-  }
+  { suffix: 'BI', width: 1500, height: 1500, fit: 'inside', quality: 90 },
+  { suffix: 'MI', width: 400, height: 400, fit: 'inside', quality: 90 },
+  { suffix: 'SI', width: 200, height: 200, fit: 'cover', quality: 90 }
 ];
 
 // a JSON value in a string
@@ -93,7 +95,6 @@ const Env = z.object({
   AUTO_ORIENT_ORIGINAL: flag,
   GENERATE_AVIF: flag,
   GENERATE_WEBP: flag,
-  PREFER_IDENTIFY_OVER_FILE: flag,
   // comma-separated, * for any
   ALLOWED_ORIGINS: z
     .string()
@@ -137,7 +138,6 @@ export const {
   AUTO_ORIENT_ORIGINAL,
   GENERATE_AVIF,
   GENERATE_WEBP,
-  PREFER_IDENTIFY_OVER_FILE,
   ALLOWED_ORIGINS,
   THUMBNAILS_PUBLISH_DELAY
 } = parseEnv(process.env);
