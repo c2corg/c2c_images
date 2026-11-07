@@ -64,7 +64,8 @@ _PREFIX_`_ACCESS_KEY_ID`: API key for corresponding prefix.
 
 _PREFIX_`_SECRET_KEY`: Secret key for corresponding prefix.
 
-_PREFIX_`_DEFAULT_REGION`: Default region for corresponding prefix.
+_PREFIX_`_DEFAULT_REGION`: (required) Region for corresponding prefix, used to
+sign the requests (Exoscale: the zone, e.g. `ch-dk-2`).
 
 `API_SECRET_KEY`: (required) API secret key, needed to publish images on the
 active bucket.
@@ -136,7 +137,8 @@ INCOMING_BUCKET: c2corg_test_incoming
 INCOMING_PREFIX: EXO
 ACTIVE_BUCKET: c2corg_test_active
 ACTIVE_PREFIX: EXO
-EXO_ENDPOINT: https://sos.exo.io
+EXO_ENDPOINT: https://sos-ch-dk-2.exo.io
+EXO_DEFAULT_REGION: ch-dk-2
 EXO_ACCESS_KEY_ID: xxx
 EXO_SECRET_KEY: xxx
 

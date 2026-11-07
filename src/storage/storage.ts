@@ -92,7 +92,7 @@ interface S3Params {
     accessKeyId: string;
     secretAccessKey: string;
   };
-  region?: string;
+  region: string;
 }
 
 export class S3Storage implements Storage {
@@ -208,21 +208,22 @@ export class S3Storage implements Storage {
   }
 }
 
-// the variables of an S3 service: <prefix>_ENDPOINT, <prefix>_ACCESS_KEY_ID, <prefix>_SECRET_KEY, <prefix>_DEFAULT_REGION
+// The variables of an S3 service: <prefix>_ENDPOINT, <prefix>_ACCESS_KEY_ID, <prefix>_SECRET_KEY, <prefix>_DEFAULT_REGION.
+// The region is required: the AWS SDK sends no request without one ("Region is missing"), and it signs them with it
+// (Exoscale: the zone, e.g. ch-dk-2).
 export const getS3Params = (prefix: string): S3Params => {
   const result = z
     .object({
       [`${prefix}_ENDPOINT`]: z.url(),
       [`${prefix}_ACCESS_KEY_ID`]: z.string().min(1),
       [`${prefix}_SECRET_KEY`]: z.string().min(1),
-      [`${prefix}_DEFAULT_REGION`]: z.string().min(1).optional()
+      [`${prefix}_DEFAULT_REGION`]: z.string().min(1)
     })
     .safeParse(process.env);
   if (!result.success) {
     throw new Error(`Invalid configuration of the S3 service ${prefix}:\n${z.prettifyError(result.error)}`);
   }
   const { data } = result;
-  const region = data[`${prefix}_DEFAULT_REGION`];
 
   return {
     credentials: {
@@ -230,7 +231,7 @@ export const getS3Params = (prefix: string): S3Params => {
       secretAccessKey: data[`${prefix}_SECRET_KEY`] as string
     },
     endpoint: data[`${prefix}_ENDPOINT`] as string,
-    ...(region ? { region } : {})
+    region: data[`${prefix}_DEFAULT_REGION`] as string
   };
 };
 
