@@ -107,6 +107,13 @@ const Env = z.object({
         .map(origin => origin.trim())
         .filter(Boolean)
     ),
+  // Files of the incoming bucket (uploaded, never published) expired after INCOMING_MAX_AGE_HOURS. auto: by a lifecycle
+  // rule of the bucket, created if it has none, else by the service every INCOMING_CLEANUP_INTERVAL_MINUTES; off: neither.
+  // With INCOMING_CLEANUP_DRY_RUN, the service only logs what it would do.
+  INCOMING_CLEANUP: z.enum(['auto', 'off']).default('auto'),
+  INCOMING_MAX_AGE_HOURS: positiveInt(24),
+  INCOMING_CLEANUP_INTERVAL_MINUTES: positiveInt(60),
+  INCOMING_CLEANUP_DRY_RUN: flag,
   // in ms
   THUMBNAILS_PUBLISH_DELAY: z.coerce.number().int().nonnegative().default(20000)
 });
@@ -142,6 +149,9 @@ export const {
   GENERATE_AVIF,
   GENERATE_WEBP,
   ALLOWED_ORIGINS,
-  THUMBNAILS_PUBLISH_DELAY
+  THUMBNAILS_PUBLISH_DELAY,
+  INCOMING_CLEANUP,
+  INCOMING_MAX_AGE_HOURS,
+  INCOMING_CLEANUP_INTERVAL_MINUTES,
+  INCOMING_CLEANUP_DRY_RUN
 } = parseEnv(process.env);
-export const S3_EXPIRE_HOURS = 2;

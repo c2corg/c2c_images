@@ -10,14 +10,14 @@ import {
 type Client = Pick<S3Client, 'send'>;
 
 /**
- * Deletes the files of the bucket older than `maxAge` ms, browsing all its pages. Returns the number of files deleted;
- * throws when some could not be.
+ * Deletes the files of the bucket older than `maxAge` ms, browsing all its pages. Returns the number of files deleted,
+ * or that would be with `dryRun`; throws when some could not be.
  */
 export const cleanIncoming = async (
   client: Client,
   bucket: string,
   maxAge: number,
-  { now = Date.now(), pageSize = 1000 }: { now?: number; pageSize?: number } = {}
+  { now = Date.now(), pageSize = 1000, dryRun = false }: { now?: number; pageSize?: number; dryRun?: boolean } = {}
 ): Promise<number> => {
   let total = 0;
   let continuationToken: string | undefined;
@@ -34,8 +34,10 @@ export const cleanIncoming = async (
       .filter(({ Key, LastModified }) => Key && LastModified && LastModified.getTime() + maxAge < now)
       .map(({ Key }) => ({ Key }));
 
-    // DeleteObjects refuses an empty list
-    if (keys.length) {
+    if (dryRun) {
+      total += keys.length;
+    } else if (keys.length) {
+      // DeleteObjects refuses an empty list
       const { Errors }: DeleteObjectsCommandOutput = await client.send(
         new DeleteObjectsCommand({ Bucket: bucket, Delete: { Quiet: true, Objects: keys } })
       );

@@ -14,7 +14,7 @@ import {
 import sanitize from 'sanitize-filename';
 import { z } from 'zod';
 
-import { CACHE_CONTROL, S3_EXPIRE_HOURS, STORAGE, TEMP_FOLDER } from '../config.js';
+import { CACHE_CONTROL, INCOMING_MAX_AGE_HOURS, STORAGE, TEMP_FOLDER } from '../config.js';
 import { getMimeTypeFromKey } from '../image/filetype.js';
 
 export abstract class Storage {
@@ -146,7 +146,7 @@ export class S3Storage implements Storage {
 
   public async put(key: string, originalFilePath: string): Promise<void> {
     const buffer = fs.readFileSync(originalFilePath);
-    const expires = this.#shouldExpire ? new Date(Date.now() + S3_EXPIRE_HOURS * 1000 * 60 * 60) : undefined;
+    const expires = this.#shouldExpire ? new Date(Date.now() + INCOMING_MAX_AGE_HOURS * 1000 * 60 * 60) : undefined;
     await this.#client.send(
       new PutObjectCommand({
         Bucket: this.#bucketName,
@@ -233,6 +233,14 @@ export const getS3Params = (prefix: string): S3Params => {
     endpoint: data[`${prefix}_ENDPOINT`] as string,
     region: data[`${prefix}_DEFAULT_REGION`] as string
   };
+};
+
+// a client of the S3 service of the incoming bucket, for its maintenance (cleanup, lifecycle)
+export const incomingClient = (): S3Client => {
+  if (STORAGE.STORAGE_BACKEND !== 's3') {
+    throw new Error('STORAGE_BACKEND is not s3');
+  }
+  return new S3Client({ ...getS3Params(STORAGE.INCOMING_PREFIX), forcePathStyle: true });
 };
 
 const tempStorage = new LocalStorage(TEMP_FOLDER);

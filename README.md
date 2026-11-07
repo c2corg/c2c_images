@@ -90,6 +90,11 @@ ones. Default is `0`.
 `GENERATE_AVIF`: `1` to generate avif thumbnails along with jpeg/png/gif
 ones. Default is `0`.
 
+`INCOMING_CLEANUP`: `auto` (default) or `off`, see [Cleaning](#cleaning).
+`INCOMING_MAX_AGE_HOURS`: Age of the files of the incoming bucket deleted.
+Default is `24`. `INCOMING_CLEANUP_INTERVAL_MINUTES`: Default is `60`.
+`INCOMING_CLEANUP_DRY_RUN`: `1` to only log. Default is `0`.
+
 `THUMBNAILS_PUBLISH_DELAY`: Delay in ms before publishing the webp/avif
 thumbnails not rendered yet when an image is published. Default is `20000`.
 
@@ -217,12 +222,19 @@ asynchronously and may not be immediately available.
 
 ## Cleaning
 
-The files which were not activated are automatically expired by S3 after 2
-hours.
+The files of the incoming bucket never published (the user uploaded an image,
+then did not save the document) expire after `INCOMING_MAX_AGE_HOURS`. With
+`INCOMING_CLEANUP=auto` (the default, S3 storage only), at startup the service:
 
-For S3-compatible versions that don't support lifecycle management, such as
-Exoscale SOS, you can use the `npm run clean:incoming` command to remove
-expired images.
+- leaves it to the bucket when a lifecycle rule already expires its files;
+- creates that rule when the bucket has no lifecycle rules (S3 counts in days:
+  the hours are rounded up). Existing rules are never replaced;
+- otherwise (lifecycle rules not supported, not allowed to the keys, or other
+  rules), deletes the expired files itself every
+  `INCOMING_CLEANUP_INTERVAL_MINUTES`.
+
+`INCOMING_CLEANUP_DRY_RUN=1` only logs what it would do. `npm run
+clean:incoming` (`-- --dry-run`) deletes the expired files once.
 
 ## Testing
 
