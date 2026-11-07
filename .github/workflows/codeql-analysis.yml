@@ -8,9 +8,15 @@ on:
   schedule:
     - cron: '0 5 * * 3'
 
+permissions: {}
+
 jobs:
   CodeQL-Build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # upload of the results to code scanning
+      security-events: write
 
     steps:
       - name: Checkout repository
