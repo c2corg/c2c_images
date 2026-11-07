@@ -15,14 +15,9 @@ describe('S3 storage', () => {
   let incomingStorage: S3Storage;
   let activeStorage: S3Storage;
   beforeAll(() => {
-    incomingStorage = new S3Storage(
-      process.env['INCOMING_BUCKET']!,
-      getS3Params('INCOMING'),
-      ObjectCannedACL.private,
-      true
-    );
+    incomingStorage = new S3Storage(process.env['INCOMING_BUCKET']!, getS3Params('S3'), ObjectCannedACL.private, true);
 
-    activeStorage = new S3Storage(process.env['ACTIVE_BUCKET']!, getS3Params('ACTIVE'), ObjectCannedACL.public_read);
+    activeStorage = new S3Storage(process.env['ACTIVE_BUCKET']!, getS3Params('S3'), ObjectCannedACL.public_read);
   });
 
   test('Standard protocol', async () => {

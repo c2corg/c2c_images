@@ -35,9 +35,7 @@ describe('POST /rotate', () => {
     const response = await request(app)
       .post('/rotate')
       .send({ secret: 'my secret', filename: '1234567890_1234567890.jpg', rotation: '45' });
-    expect(response.text).toBe(
-      "Bad parameter rotation: Invalid enum value. Expected '-90' | '90' | '180', received '45'."
-    );
+    expect(response.text).toBe('Bad parameter rotation: Invalid option: expected one of "90"|"180"|"-90".');
     expect(response.status).toBe(400);
   });
 

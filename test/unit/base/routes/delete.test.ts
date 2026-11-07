@@ -16,7 +16,7 @@ describe('POST /delete', () => {
 
   test('requires filenames', async () => {
     const response = await request(app).post('/delete').send({ secret: 'my secret' });
-    expect(response.text).toBe('Bad parameter filenames: Invalid input.');
+    expect(response.text).toBe('Bad parameter filenames: Required.');
     expect(response.status).toBe(400);
   });
 

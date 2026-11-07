@@ -20,6 +20,17 @@ describe('POST /publish', () => {
     expect(response.status).toBe(403);
   });
 
+  test.each([
+    ['a prefix of the secret', 'secret=my'],
+    ['the secret and more', 'secret=my%20secret%20and%20more'],
+    ['a repeated field', 'secret=my%20secret&secret=my%20secret'],
+    ['an empty secret', 'secret=']
+  ])('refuses %s', async (_, body) => {
+    const response = await request(app).post('/publish').type('form').send(body);
+    expect(response.text).toBe('Bad secret key.');
+    expect(response.status).toBe(403);
+  });
+
   test('missing filename', async () => {
     const response = await request(app).post('/publish').send({ secret: 'my secret' });
     expect(response.text).toBe('Bad parameter filename: Required.');

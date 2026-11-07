@@ -12,8 +12,9 @@ import {
   S3Client
 } from '@aws-sdk/client-s3';
 import sanitize from 'sanitize-filename';
+import { z } from 'zod';
 
-import { CACHE_CONTROL, S3_EXPIRE_HOURS, STORAGE_BACKEND, TEMP_FOLDER } from '../config.js';
+import { CACHE_CONTROL, S3_EXPIRE_HOURS, STORAGE, TEMP_FOLDER } from '../config.js';
 import { getMimeTypeFromKey } from '../image/filetype.js';
 
 export abstract class Storage {
@@ -207,52 +208,40 @@ export class S3Storage implements Storage {
   }
 }
 
+// the variables of an S3 service: <prefix>_ENDPOINT, <prefix>_ACCESS_KEY_ID, <prefix>_SECRET_KEY, <prefix>_DEFAULT_REGION
 export const getS3Params = (prefix: string): S3Params => {
-  const PREFIX = process.env[`${prefix}_PREFIX`];
-  if (!PREFIX) {
-    throw new Error(`${prefix}_PREFIX must be defined`);
+  const result = z
+    .object({
+      [`${prefix}_ENDPOINT`]: z.url(),
+      [`${prefix}_ACCESS_KEY_ID`]: z.string().min(1),
+      [`${prefix}_SECRET_KEY`]: z.string().min(1),
+      [`${prefix}_DEFAULT_REGION`]: z.string().min(1).optional()
+    })
+    .safeParse(process.env);
+  if (!result.success) {
+    throw new Error(`Invalid configuration of the S3 service ${prefix}:\n${z.prettifyError(result.error)}`);
   }
-
-  const ENDPOINT = process.env[`${PREFIX}_ENDPOINT`];
-  const ACCESS_KEY_ID = process.env[`${PREFIX}_ACCESS_KEY_ID`];
-  const SECRET_KEY = process.env[`${PREFIX}_SECRET_KEY`];
-  const DEFAULT_REGION = process.env[`${PREFIX}_DEFAULT_REGION`];
-  if (!ENDPOINT || !ACCESS_KEY_ID || !SECRET_KEY) {
-    throw new Error(`${PREFIX}_ENDPOINT, ${PREFIX}_ACCESS_KEY_ID and ${PREFIX}_SECRET_KEY must be defined`);
-  }
+  const { data } = result;
+  const region = data[`${prefix}_DEFAULT_REGION`];
 
   return {
     credentials: {
-      accessKeyId: ACCESS_KEY_ID,
-      secretAccessKey: SECRET_KEY
+      accessKeyId: data[`${prefix}_ACCESS_KEY_ID`] as string,
+      secretAccessKey: data[`${prefix}_SECRET_KEY`] as string
     },
-    endpoint: ENDPOINT,
-    ...(DEFAULT_REGION ? { region: DEFAULT_REGION } : {})
+    endpoint: data[`${prefix}_ENDPOINT`] as string,
+    ...(region ? { region } : {})
   };
 };
 
 const tempStorage = new LocalStorage(TEMP_FOLDER);
-let incomingStorage: Storage;
-let activeStorage: Storage;
+const incomingStorage: Storage =
+  STORAGE.STORAGE_BACKEND === 's3'
+    ? new S3Storage(STORAGE.INCOMING_BUCKET, getS3Params(STORAGE.INCOMING_PREFIX), ObjectCannedACL.private, true)
+    : new LocalStorage(STORAGE.INCOMING_FOLDER);
+const activeStorage: Storage =
+  STORAGE.STORAGE_BACKEND === 's3'
+    ? new S3Storage(STORAGE.ACTIVE_BUCKET, getS3Params(STORAGE.ACTIVE_PREFIX), ObjectCannedACL.public_read)
+    : new LocalStorage(STORAGE.ACTIVE_FOLDER);
 
-if (STORAGE_BACKEND === 's3') {
-  if (!process.env['INCOMING_BUCKET'] || !process.env['ACTIVE_BUCKET']) {
-    throw new Error('INCOMING_BUCKET and ACTIVE_BUCKET must be defined');
-  }
-  incomingStorage = new S3Storage(
-    process.env['INCOMING_BUCKET'],
-    getS3Params('INCOMING'),
-    ObjectCannedACL.private,
-    true
-  );
-  activeStorage = new S3Storage(process.env['ACTIVE_BUCKET'], getS3Params('ACTIVE'), ObjectCannedACL.public_read);
-} else if (process.env['STORAGE_BACKEND'] === 'local') {
-  if (!process.env['INCOMING_FOLDER'] || !process.env['ACTIVE_FOLDER']) {
-    throw new Error('INCOMING_FOLDER and ACTIVE_FOLDER must be defined');
-  }
-  incomingStorage = new LocalStorage(process.env['INCOMING_FOLDER']);
-  activeStorage = new LocalStorage(process.env['ACTIVE_FOLDER']);
-} else {
-  throw new Error('STORAGE_BACKEND not supported or missing');
-}
 export { tempStorage, incomingStorage, activeStorage };

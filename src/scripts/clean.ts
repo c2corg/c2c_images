@@ -5,16 +5,16 @@
 
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 
-import { S3_EXPIRE_HOURS, STORAGE_BACKEND } from '../config.js';
+import { S3_EXPIRE_HOURS, STORAGE } from '../config.js';
 import { log } from '../log.js';
 import { getS3Params } from '../storage/storage.js';
 
-const INCOMING_BUCKET = process.env['INCOMING_BUCKET'];
-if (STORAGE_BACKEND !== 's3' || !INCOMING_BUCKET) {
-  throw new Error('Backend is not configured with s3, or INCOMING_BUCKET is not defined');
+if (STORAGE.STORAGE_BACKEND !== 's3') {
+  throw new Error('STORAGE_BACKEND is not s3');
 }
+const { INCOMING_BUCKET } = STORAGE;
 
-const params = getS3Params('INCOMING');
+const params = getS3Params(STORAGE.INCOMING_PREFIX);
 const client = new S3Client({
   ...params,
   forcePathStyle: true

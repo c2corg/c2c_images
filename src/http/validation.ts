@@ -1,7 +1,7 @@
 import createHttpError from 'http-errors';
-import { z, type ZodObject, type ZodRawShape } from 'zod';
+import { z } from 'zod';
 
-import { API_SECRET_KEY, RESIZING_CONFIG } from '../config.js';
+import { RESIZING_CONFIG } from '../config.js';
 
 // <seconds since epoch>_<random number>, optionally a thumbnail suffix. The random number is not zero padded in the
 // keys made by v6_images (up to 2^31 - 1), so its length varies.
@@ -9,14 +9,12 @@ export const keyRegex = new RegExp(
   `^\\d+_\\d+(${RESIZING_CONFIG.map(({ suffix }) => suffix).join('|')})?\\.(jpg|png|gif|svg)$`
 );
 
-const FilenameSchema = z.string().refine(value => keyRegex.test(value));
+const FilenameSchema = z.string().regex(keyRegex);
 
-export const ApiSecret = z.object({
-  secret: z.string().refine(value => value === API_SECRET_KEY)
-});
-
-export const UploadFiles = z.object<{ file: z.ZodType<Express.Multer.File> }>({
-  file: z.any().refine((value: Express.Multer.File) => value.size > 0)
+export const UploadFiles = z.object({
+  file: z.custom<Express.Multer.File>(
+    value => typeof value === 'object' && value !== null && 'size' in value && (value as { size: number }).size > 0
+  )
 });
 
 export const PublishBody = z.object({
@@ -24,9 +22,9 @@ export const PublishBody = z.object({
 });
 
 export const DeleteBody = z.object({
-  filenames: FilenameSchema.or(FilenameSchema.array().nonempty()).transform(value =>
-    Array.isArray(value) ? value : [value]
-  )
+  filenames: z
+    .union([FilenameSchema, FilenameSchema.array().nonempty()])
+    .transform(value => (Array.isArray(value) ? value : [value]))
 });
 
 export const RotateBody = z.object({
@@ -34,19 +32,23 @@ export const RotateBody = z.object({
   filename: FilenameSchema
 });
 
-export const validate = <T extends ZodObject<ZodRawShape>>(input: unknown, schema: T): z.infer<T> => {
-  const result = schema.safeParse(input);
+// a missing value is reported as such, the other errors keep the messages of zod
+const missingIsRequired = (issue: { input: unknown }): string | undefined =>
+  issue.input === undefined ? 'Required' : undefined;
+
+export const validate = <T extends z.ZodObject>(input: unknown, schema: T): z.output<T> => {
+  const result = schema.safeParse(input, { error: missingIsRequired });
   if (result.success) {
     return result.data;
   }
 
-  const { fieldErrors, formErrors } = result.error.flatten();
+  const { fieldErrors, formErrors } = z.flattenError(result.error);
   throw createHttpError(
     400,
     formErrors.length
-      ? `Missing parameters. Expected values are { ${Object.values(schema.keyof().enum).join(', ')} }`
+      ? `Missing parameters. Expected values are { ${Object.keys(schema.shape).join(', ')} }`
       : Object.entries(fieldErrors)
-          .map(([parameter, message]) => `Bad parameter ${parameter}: ${message?.join(' ') || '(unknown error)'}.`)
+          .map(([parameter, messages]) => `Bad parameter ${parameter}: ${messages?.join(' ') || '(unknown error)'}.`)
           .join('\n')
   );
 };
