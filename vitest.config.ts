@@ -7,7 +7,9 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.ts'],
       reporter: ['text-summary', 'lcov'],
-      reportsDirectory: 'reports/coverage'
+      reportsDirectory: 'reports/coverage',
+      // of the whole suite (npm run test:ci, with the S3 server), a little under the current values
+      thresholds: { statements: 84, branches: 77, functions: 85, lines: 84 }
     },
     projects: [
       {

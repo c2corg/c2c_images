@@ -3,18 +3,44 @@ updates:
   - package-ecosystem: npm
     directory: '/'
     schedule:
-      interval: daily
-    open-pull-requests-limit: 99
+      interval: weekly
+    # wait a week before proposing a new release: compromised versions are usually caught and yanked by then
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 20
+    labels:
+      - dependabot
+    groups:
+      # one pull request for the minor and patch updates, one per major update
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # typescript-eslint supports TypeScript < 6.1 only (8.72): remove once it supports TypeScript 7
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
   - package-ecosystem: docker
     directory: '/'
     schedule:
-      interval: 'weekly'
-  # the image of the test S3 server (docker-compose.s3.yml, pinned by digest)
+      interval: weekly
+    labels:
+      - dependabot
+  # the image of the test S3 server (docker-compose.s3.yml: CloudServer, pinned by digest)
   - package-ecosystem: docker-compose
     directory: '/'
     schedule:
-      interval: 'weekly'
+      interval: weekly
+    cooldown:
+      default-days: 7
+    labels:
+      - dependabot
   - package-ecosystem: github-actions
     directory: '/'
     schedule:
-      interval: 'weekly'
+      interval: weekly
+    cooldown:
+      default-days: 7
+    labels:
+      - dependabot
+    groups:
+      github-actions:
+        patterns: ['*']
