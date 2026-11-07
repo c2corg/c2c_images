@@ -1,5 +1,6 @@
 process.env['NODE_ENV'] = 'development';
 process.env['STORAGE_BACKEND'] = 's3';
+process.env['API_SECRET_KEY'] = 'my secret';
 process.env['INCOMING_BUCKET'] = 'incoming';
 process.env['INCOMING_PREFIX'] = 'S3';
 process.env['ACTIVE_BUCKET'] = 'active';
