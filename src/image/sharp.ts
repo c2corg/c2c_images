@@ -27,7 +27,11 @@ export const ORIGINAL_JPEG_QUALITY = 90;
  * The encoder of a file, by its extension. JPEG through mozjpeg (smaller at the same quality, progressive); PNG and GIF
  * lossless, PNG with the strongest compression.
  */
-export const encode = (image: Sharp, ext: string, { jpeg = JPEG_QUALITY }: { jpeg?: number } = {}): Sharp => {
+export const encode = (
+  image: Sharp,
+  ext: string,
+  { jpeg = JPEG_QUALITY, avif = AVIF_QUALITY }: { jpeg?: number; avif?: number } = {}
+): Sharp => {
   switch (ext) {
     case '.jpg':
       return image.jpeg({ quality: jpeg, mozjpeg: true });
@@ -38,7 +42,7 @@ export const encode = (image: Sharp, ext: string, { jpeg = JPEG_QUALITY }: { jpe
     case '.webp':
       return image.webp({ quality: WEBP_QUALITY });
     case '.avif':
-      return image.avif({ quality: AVIF_QUALITY, effort: AVIF_EFFORT });
+      return image.avif({ quality: avif, effort: AVIF_EFFORT });
     default:
       throw new Error(`Unsupported output image format ${ext}.`);
   }

@@ -102,6 +102,10 @@ per format: the scales differ. Defaults are `82` (JPEG, through mozjpeg),
 `55` (AVIF) and `80` (WebP). `AVIF_EFFORT`: CPU spent by the AVIF encoder,
 `0` (fast) to `9` (smaller files). Default is `4`.
 
+`AVIF_QUALITY_DRAWING`: Quality of the AVIF thumbnails of SVG drawings
+(embedded raster images under half of the drawing), for sharp lines and text.
+Default is `80`; SVGs with a photo use `AVIF_QUALITY`.
+
 `CACHE_CONTROL`: Cache-Control value to be set to all the images uploaded
 to s3. Default is `public, max-age=3600`.
 
@@ -275,8 +279,12 @@ the order of their keys:
   line gives it, and so does the end of a stopped run);
 - `--concurrency=<n>`: images rendered at the same time (default `1`);
 - `--pause-ms=<ms>`: pause between two batches;
-- `--reencode-jpeg`: also render again the JPEG thumbnails, with the current
-  encoder.
+- `--reencode-jpeg`: also render again the JPEG thumbnails of the JPEG
+  originals, with the current encoder.
+
+For SVG originals, the JPEG thumbnails are always rendered again, from a
+sanitized copy (the originals stored by v6_images were not sanitized; they are
+not changed).
 
 SIGINT and SIGTERM stop it after the current batch. `AVIF_QUALITY` and
 `AVIF_EFFORT` apply as for the uploads.

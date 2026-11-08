@@ -100,6 +100,8 @@ const Env = z.object({
   // Chosen on photos of the site (c2corg/c2c_images#55): the conservative side of the usual web values, for terrain detail.
   JPEG_QUALITY: quality(82),
   AVIF_QUALITY: quality(55),
+  // SVG drawings (embedded raster under half of the drawing): lines and text stay sharp (#1198)
+  AVIF_QUALITY_DRAWING: quality(80),
   WEBP_QUALITY: quality(80),
   // CPU spent by the AVIF encoder, 0 (fast) to 9 (small files)
   AVIF_EFFORT: z.coerce.number().int().min(0).max(9).default(4),
@@ -156,6 +158,7 @@ export const {
   CACHE_CONTROL,
   JPEG_QUALITY,
   AVIF_QUALITY,
+  AVIF_QUALITY_DRAWING,
   WEBP_QUALITY,
   AVIF_EFFORT,
   AUTO_ORIENT_ORIGINAL,

@@ -1,10 +1,11 @@
 import path from 'node:path';
 
-import { GENERATE_AVIF, GENERATE_WEBP, RESIZING_CONFIG, type ResizeConfig } from '../config.js';
+import { AVIF_QUALITY_DRAWING, GENERATE_AVIF, GENERATE_WEBP, RESIZING_CONFIG, type ResizeConfig } from '../config.js';
 import { log } from '../log.js';
 import { imageGenerationsHistogram } from '../metrics/prometheus.js';
 
 import { encode, openImage } from './sharp.js';
+import { isDrawing } from './svg.js';
 
 // the thumbnails of an SVG are JPEG, the others keep the format of the image unless asked
 const thumbnailKey = (key: string, suffix: string, format?: string): string => {
@@ -52,7 +53,10 @@ export const createThumbnail = async (
     // inside: smaller images are kept as they are; cover: cropped around the center to fill the size
     withoutEnlargement: fit === 'inside'
   });
-  await encode(image, resizedExt).toFile(resizedPath);
+  // the AVIF of an SVG drawing keeps its lines and text sharp (#1198)
+  const avif =
+    ext === '.svg' && resizedExt === '.avif' && (await isDrawing(originalPath)) ? AVIF_QUALITY_DRAWING : undefined;
+  await encode(image, resizedExt, avif ? { avif } : {}).toFile(resizedPath);
   end();
 };
 

@@ -60,8 +60,9 @@ describe('backfillAvif', { timeout: 60_000 }, () => {
         expect(files()).toContain(`${key}${suffix}.avif`);
       }
     }
-    // the JPEG thumbnails are left as they are
+    // the JPEG thumbnails of the JPEG originals are left as they are, those of the SVGs rendered again
     expect(files()).not.toContain('1_1MI.jpg');
+    expect(files()).toEqual(expect.arrayContaining(['2_2BI.jpg', '2_2MI.jpg', '2_2SI.jpg']));
     expect(fs.readdirSync(tempStorage.path()).filter(file => /^(1_1|2_2)[A-Z.]/.test(file))).toEqual([]);
 
     expect(await backfillAvif(active, tempStorage, options, log)).toMatchObject({ missing: 0, rendered: 0 });

@@ -4,6 +4,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { RESIZING_CONFIG } from '../config.js';
 import type { LocalStorage, Storage } from '../storage/storage.js';
 
+import { sanitizeSvgFile } from './svg.js';
 import { removeFromTemp } from './temp.js';
 import { createThumbnail } from './thumbnails.js';
 
@@ -18,7 +19,7 @@ export interface BackfillOptions {
   pauseMs: number;
   /** count the images without AVIF thumbnails, render nothing */
   dryRun: boolean;
-  /** also render again the JPEG thumbnails (of the JPEG and SVG originals), with the current encoder */
+  /** also render again the JPEG thumbnails of the JPEG originals (those of the SVG originals always are) */
   reencodeJpeg: boolean;
   /** stop after the current batch */
   signal?: AbortSignal | undefined;
@@ -74,11 +75,16 @@ export const backfillAvif = async (
     const { ext } = path.parse(key);
     try {
       await active.copy(key, temp);
+      // the old SVGs were stored as uploaded (v6_images): rendered from their sanitized copy, the original unchanged
+      if (ext === '.svg') {
+        await sanitizeSvgFile(temp.path(key));
+      }
       const keys: string[] = [];
       for (const config of RESIZING_CONFIG) {
         await createThumbnail(dir, key, config, '.avif');
         keys.push(`${path.parse(key).name}${config.suffix}.avif`);
-        if (options.reencodeJpeg && (ext === '.jpg' || ext === '.svg')) {
+        // the JPEG thumbnails of SVGs always: today's rendering is better (sanitizer, fonts, framing; #1199)
+        if (ext === '.svg' || (options.reencodeJpeg && ext === '.jpg')) {
           await createThumbnail(dir, key, config);
           keys.push(`${path.parse(key).name}${config.suffix}.jpg`);
         }
