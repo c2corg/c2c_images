@@ -34,6 +34,16 @@ describe('sanitizeSvg', () => {
     expect(clean).toContain(text);
   });
 
+  test('drops the elements it does not know with their content, as browsers do (Inkscape flowed text)', async () => {
+    const original = fs.readFileSync('test/data/flowed-text.svg');
+    const clean = sanitizeSvg(original.toString('utf8'));
+    expect(clean).not.toContain('flowRoot');
+    expect(clean).not.toContain('x="120"');
+    const render = async (svg: Buffer): Promise<Buffer> =>
+      sharp(svg, { density: 96 }).flatten({ background: 'white' }).raw().toBuffer();
+    expect((await render(Buffer.from(clean))).equals(await render(original))).toBe(true);
+  });
+
   test('keeps the drawing of a real SVG pixel for pixel', async () => {
     const original = fs.readFileSync('test/data/pipe_organ.svg');
     const render = async (svg: Buffer): Promise<Buffer> =>

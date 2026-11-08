@@ -42,7 +42,14 @@ export const sanitizeSvg = (svg: string): string => {
   if (root.localName !== 'svg' || root.namespaceURI !== SVG_NAMESPACE) {
     throw new Error('Not an SVG document');
   }
-  purify.sanitize(root, { USE_PROFILES: { svg: true, svgFilters: true }, ADD_TAGS: ['use'], IN_PLACE: true });
+  // An element removed goes with its content, as browsers render nothing inside an SVG element they do not know: kept,
+  // the <rect> of the text area of Inkscape's flowed text (<flowRoot>, SVG 1.2 draft) became a visible box.
+  purify.sanitize(root, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    ADD_TAGS: ['use'],
+    IN_PLACE: true,
+    KEEP_CONTENT: false
+  });
   return `<?xml version="1.0" encoding="UTF-8"?>\n${new window.XMLSerializer().serializeToString(root)}\n`;
 };
 
