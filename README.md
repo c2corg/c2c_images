@@ -264,6 +264,11 @@ coverage (`reports/coverage`).
 
 Use `docker build` to build an image of the service.
 
+The image installs free fonts for the text of the SVGs: Arial is rendered with
+Liberation Sans, Calibri with Carlito, and so on. `fonts/local.conf` maps the
+other names the SVGs of the site use to the closest installed font
+(Verdana: DejaVu Sans, Illustrator's `Arial-BoldMT`: Liberation Sans bold...).
+
 ## Creating a version
 
 Use `npm version`.
