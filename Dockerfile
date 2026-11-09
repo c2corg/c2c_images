@@ -37,6 +37,9 @@ COPY --from=build --chown=node:node /usr/package.json ./
 COPY --from=build --chown=node:node /usr/node_modules ./node_modules
 COPY --from=build --chown=node:node /usr/dist ./
 ENV NODE_ENV=production
+# glibc creates a memory pool per thread: with the threads of libvips, the memory grows and is not given back (sharp's
+# recommendation). Measured with the backfill on large SVGs: 590 MB, 360 MB with 2 pools.
+ENV MALLOC_ARENA_MAX=2
 ENV DEBUG="c2c_images:*"
 ENV SERVICE_PORT=8080
 ENV METRICS_PORT=8081
