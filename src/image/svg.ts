@@ -53,6 +53,35 @@ export const sanitizeSvg = (svg: string): string => {
   return `<?xml version="1.0" encoding="UTF-8"?>\n${new window.XMLSerializer().serializeToString(root)}\n`;
 };
 
+/**
+ * The share of the drawing covered by embedded raster images (<image>), from 0 to 1: a photo with a route drawn on it
+ * is close to 1, a drawing close to 0. From the width and height of the images against the viewBox (or the size) of
+ * the document; transforms are not taken into account.
+ */
+export const rasterShare = (svg: string): number => {
+  const root = new JSDOM(svg, { contentType: 'image/svg+xml' }).window.document.documentElement;
+  const number = (value: string | null): number => {
+    const parsed = Number.parseFloat(value ?? '');
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  const viewBox = (root.getAttribute('viewBox') ?? '').split(/[\s,]+/).map(Number);
+  const [width, height] =
+    viewBox.length === 4
+      ? [viewBox[2] ?? 0, viewBox[3] ?? 0]
+      : [number(root.getAttribute('width')), number(root.getAttribute('height'))];
+  if (!width || !height) {
+    return 0;
+  }
+  let area = 0;
+  for (const image of root.getElementsByTagName('image')) {
+    area += number(image.getAttribute('width')) * number(image.getAttribute('height'));
+  }
+  return Math.min(1, area / (width * height));
+};
+
+export const isDrawing = async (file: string): Promise<boolean> =>
+  rasterShare(await fs.promises.readFile(file, 'utf8')) < 0.5;
+
 export const sanitizeSvgFile = async (file: string): Promise<void> => {
   const svg = await fs.promises.readFile(file, 'utf8');
   await fs.promises.writeFile(file, sanitizeSvg(svg));

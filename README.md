@@ -103,6 +103,10 @@ per format: the scales differ. Defaults are `82` (JPEG, through mozjpeg),
 `0` (fast) to `9` (smaller files). Default is `3`: 4 to 5 times faster than
 `4`, for files of the same size.
 
+`AVIF_QUALITY_DRAWING`: Quality of the AVIF thumbnails of SVG drawings
+(embedded raster images under half of the drawing), for sharp lines and text.
+Default is `80`; SVGs with a photo use `AVIF_QUALITY`.
+
 `CACHE_CONTROL`: Cache-Control value to be set to all the images uploaded
 to s3. Default is `public, max-age=3600`.
 
@@ -263,6 +267,33 @@ Use `docker build` to build an image of the service.
 ## Creating a version
 
 Use `npm version`.
+
+## AVIF backfill
+
+`npm run backfill:avif` (`node scripts/backfill-avif.js` in the image) renders
+the missing AVIF thumbnails of the published images, from their originals, in
+the order of their keys:
+
+- `--dry-run`: only count the images without their AVIF thumbnails;
+- `--limit=<n>`: stop after `n` images;
+- `--start-after=<key>`: resume after the last image done (each progress
+  line gives it, and so does the end of a stopped run);
+- `--concurrency=<n>`: images rendered at the same time (default `1`);
+- `--pause-ms=<ms>`: pause between two batches;
+- `--reencode-jpeg`: also render again the JPEG thumbnails of the JPEG
+  originals, with the current encoder.
+
+For SVG originals, the JPEG thumbnails are always rendered again, from a
+sanitized copy (the originals stored by v6_images were not sanitized).
+
+`--sanitize-svg` also replaces the SVG originals by that sanitized copy, when
+it differs, after their thumbnails: their scripts, event handlers and external
+references could run when the file is opened directly. It takes every SVG,
+with its AVIF thumbnails or not. `--svg-only` takes the SVG originals only,
+to do them first.
+
+SIGINT and SIGTERM stop it after the current batch. `AVIF_QUALITY` and
+`AVIF_EFFORT` apply as for the uploads.
 
 ## Prometheus metrics
 

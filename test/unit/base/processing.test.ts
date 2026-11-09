@@ -133,3 +133,29 @@ describe('Encoding', () => {
     expect(avif).toBeLessThan(jpeg / 1.5);
   });
 });
+
+describe('SVG AVIF by content', () => {
+  const avifOf = async (file: string): Promise<number> => {
+    const key = await copyToTemp(file);
+    const { name } = path.parse(key);
+    await createThumbnail(tempStorage.path(), key, config('MI'), '.avif');
+    return fs.statSync(tempStorage.path(`${name}MI.avif`)).size;
+  };
+  // the same rendering at AVIF_QUALITY (55)
+  const atDefaultQuality = async (file: string): Promise<number> =>
+    (
+      await sharp(`test/data/${file}`, { density: 96 })
+        .flatten({ background: 'white' })
+        .resize({ width: 400, height: 400, fit: 'inside', withoutEnlargement: true })
+        .avif({ quality: 55, effort: 4 })
+        .toBuffer()
+    ).length;
+
+  test('a drawing at AVIF_QUALITY_DRAWING: larger than at AVIF_QUALITY', async () => {
+    expect(await avifOf('pipe_organ.svg')).toBeGreaterThan(await atDefaultQuality('pipe_organ.svg'));
+  });
+
+  test('a photo with a route at AVIF_QUALITY', async () => {
+    expect(await avifOf('route-on-photo.svg')).toBe(await atDefaultQuality('route-on-photo.svg'));
+  });
+});

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import sharp from 'sharp';
 import { describe, expect, test } from 'vitest';
 
-import { sanitizeSvg } from '../../../src/image/svg.js';
+import { rasterShare, sanitizeSvg } from '../../../src/image/svg.js';
 
 const unsafe = fs.readFileSync('test/data/unsafe.svg', 'utf8');
 
@@ -63,5 +63,18 @@ describe('sanitizeSvg', () => {
     ['an svg without the SVG namespace', '<svg><script>alert(1)</script></svg>']
   ])('refuses %s', (_, svg) => {
     expect(() => sanitizeSvg(svg)).toThrow();
+  });
+});
+
+describe('rasterShare', () => {
+  test.each([
+    ['a photo with a route drawn on it', 'route-on-photo.svg', 1],
+    ['a drawing', 'pipe_organ.svg', 0]
+  ])('%s: %s', (_, file, share) => {
+    expect(rasterShare(fs.readFileSync(`test/data/${file}`, 'utf8'))).toBe(share);
+  });
+
+  test('a document without size', () => {
+    expect(rasterShare('<svg xmlns="http://www.w3.org/2000/svg"><image width="10" height="10"/></svg>')).toBe(0);
   });
 });

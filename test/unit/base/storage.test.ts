@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import { beforeAll, describe, expect, test } from 'vitest';
 
@@ -61,5 +63,29 @@ describe('Local storage', () => {
     // cleaning
     await activeStorage.delete(newKey);
     expect(await activeStorage.exists(newKey)).toBe(false);
+  });
+});
+
+describe('LocalStorage keys', () => {
+  test('lists the files in order, after a key', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'));
+    try {
+      const storage = new LocalStorage(dir);
+      for (const key of ['2.jpg', '1.jpg', '1BI.jpg']) {
+        fs.writeFileSync(path.join(dir, key), '');
+      }
+      fs.mkdirSync(path.join(dir, 'sub'));
+      const keys = async (startAfter?: string): Promise<string[]> => {
+        const result: string[] = [];
+        for await (const key of storage.keys(startAfter)) {
+          result.push(key);
+        }
+        return result;
+      };
+      expect(await keys()).toEqual(['1.jpg', '1BI.jpg', '2.jpg']);
+      expect(await keys('1.jpg')).toEqual(['1BI.jpg', '2.jpg']);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
