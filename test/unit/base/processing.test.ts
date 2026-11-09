@@ -4,7 +4,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { describe, expect, test } from 'vitest';
 
-import { RESIZING_CONFIG } from '../../../src/config.js';
+import { AVIF_EFFORT, AVIF_QUALITY, RESIZING_CONFIG } from '../../../src/config.js';
 import { generateUniqueKeyPrefix } from '../../../src/http/utils.js';
 import { getFileFormat } from '../../../src/image/filetype.js';
 import { createThumbnail, createThumbnails } from '../../../src/image/thumbnails.js';
@@ -141,13 +141,13 @@ describe('SVG AVIF by content', () => {
     await createThumbnail(tempStorage.path(), key, config('MI'), '.avif');
     return fs.statSync(tempStorage.path(`${name}MI.avif`)).size;
   };
-  // the same rendering at AVIF_QUALITY (55)
+  // the same rendering at AVIF_QUALITY, with the AVIF_EFFORT of the service
   const atDefaultQuality = async (file: string): Promise<number> =>
     (
       await sharp(`test/data/${file}`, { density: 96 })
         .flatten({ background: 'white' })
         .resize({ width: 400, height: 400, fit: 'inside', withoutEnlargement: true })
-        .avif({ quality: 55, effort: 4 })
+        .avif({ quality: AVIF_QUALITY, effort: AVIF_EFFORT })
         .toBuffer()
     ).length;
 
