@@ -288,7 +288,8 @@ sanitized copy (the originals stored by v6_images were not sanitized).
 `--sanitize-svg` also replaces the SVG originals by that sanitized copy, when
 it differs, after their thumbnails: their scripts, event handlers and external
 references could run when the file is opened directly. It takes every SVG,
-with its AVIF thumbnails or not.
+with its AVIF thumbnails or not. `--svg-only` takes the SVG originals only,
+to do them first.
 
 SIGINT and SIGTERM stop it after the current batch. `AVIF_QUALITY` and
 `AVIF_EFFORT` apply as for the uploads.

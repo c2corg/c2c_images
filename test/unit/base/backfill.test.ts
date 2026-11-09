@@ -117,6 +117,13 @@ describe('backfillAvif', { timeout: 60_000 }, () => {
     expect(fs.readdirSync(tempStorage.path()).filter(file => /^(2_2|3_3)[A-Z.]/.test(file))).toEqual([]);
   });
 
+  test('takes the SVG originals only when asked', async () => {
+    const result = await backfillAvif(active, tempStorage, { ...options, svgOnly: true }, log);
+    expect(result).toMatchObject({ scanned: 1, missing: 1, rendered: 1 });
+    expect(files()).toContain('2_2BI.avif');
+    expect(files()).not.toContain('1_1BI.avif');
+  });
+
   test('counts a failed image and goes on', async () => {
     put('0_9.jpg', 'invalid_content.jpg');
     const result = await backfillAvif(active, tempStorage, options, log);

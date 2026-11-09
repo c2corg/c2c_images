@@ -1,7 +1,7 @@
 // Renders the missing AVIF thumbnails of the published images, from their originals (c2corg/c2c_images#1160).
 //
 //   node scripts/backfill-avif.js [--dry-run] [--start-after=<key>] [--limit=<images>] [--concurrency=<n>]
-//     [--pause-ms=<ms>] [--reencode-jpeg] [--sanitize-svg]
+//     [--pause-ms=<ms>] [--reencode-jpeg] [--sanitize-svg] [--svg-only]
 //
 // Resumable: each progress line gives the last image done; start again with --start-after=<it>. SIGINT and SIGTERM
 // stop it after the current batch. AVIF_EFFORT and AVIF_QUALITY apply as for the uploads.
@@ -20,7 +20,8 @@ const { values } = parseArgs({
     concurrency: { type: 'string', default: '1' },
     'pause-ms': { type: 'string', default: '0' },
     'reencode-jpeg': { type: 'boolean', default: false },
-    'sanitize-svg': { type: 'boolean', default: false }
+    'sanitize-svg': { type: 'boolean', default: false },
+    'svg-only': { type: 'boolean', default: false }
   }
 });
 
@@ -54,6 +55,7 @@ const result = await backfillAvif(
     pauseMs: positive('pause-ms', values['pause-ms']) ?? 0,
     reencodeJpeg: values['reencode-jpeg'],
     sanitizeSvg: values['sanitize-svg'],
+    svgOnly: values['svg-only'],
     signal: controller.signal
   },
   log

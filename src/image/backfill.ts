@@ -27,6 +27,8 @@ export interface BackfillOptions {
    * with its AVIF thumbnails or not
    */
   sanitizeSvg?: boolean | undefined;
+  /** only the SVG originals: they can be done first, in a short pass */
+  svgOnly?: boolean | undefined;
   /** stop after the current batch */
   signal?: AbortSignal | undefined;
 }
@@ -140,7 +142,7 @@ export const backfillAvif = async (
   const complete = async (prefix: string): Promise<void> => {
     const image = pending.get(prefix);
     pending.delete(prefix);
-    if (!image?.original) {
+    if (!image?.original || (options.svgOnly && !image.original.endsWith('.svg'))) {
       return;
     }
     result.scanned++;
