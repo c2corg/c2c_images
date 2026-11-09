@@ -16,6 +16,7 @@ import {
 } from '../config.js';
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
+import { convertHeicToJpeg } from '../image/heic.js';
 import { rotateImages } from '../image/rotate.js';
 import { checkEmbeddedImages, sanitizeSvgFile } from '../image/svg.js';
 import { removeFromTemp } from '../image/temp.js';
@@ -126,6 +127,21 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
     }
   }
 
+  // HEIC: stored as JPEG, as the browsers do not display it (only Safari)
+  const uploadedFormat = format;
+  if (format === 'heic') {
+    try {
+      await convertHeicToJpeg(file.path, `${file.path}.jpg`);
+      fs.renameSync(`${file.path}.jpg`, file.path);
+    } catch (error) {
+      log.warn(error);
+      fs.rmSync(`${file.path}.jpg`, { force: true });
+      promRefusedUploadsCounter.inc({ reason: 'format' });
+      throw createHttpError(400, 'Unsupported image format.');
+    }
+    format = 'jpg';
+  }
+
   // rename with 'official' extension
   const originalKey = `${keyPrefix}.${format}`;
   fs.renameSync(file.path, tempStorage.path(originalKey));
@@ -159,7 +175,7 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
 
   log.debug(`${keyPrefix} - returning response`);
 
-  promUploadedImagesCounter.inc({ format });
+  promUploadedImagesCounter.inc({ format: uploadedFormat });
   return {
     success: true,
     filename: `${keyPrefix}.${format}`

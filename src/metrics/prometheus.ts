@@ -58,7 +58,7 @@ export const promErrorsCounter = new Counter({
 
 export const promUploadedImagesCounter = new Counter({
   name: `${PREFIX}uploaded_images_total`,
-  help: 'Images uploaded to the incoming bucket, by format',
+  help: 'Images uploaded to the incoming bucket, by format as uploaded (heic: stored as jpg)',
   labelNames: ['format'] as const
 });
 
