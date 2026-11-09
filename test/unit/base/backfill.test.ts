@@ -124,6 +124,27 @@ describe('backfillAvif', { timeout: 60_000 }, () => {
     expect(files()).not.toContain('1_1BI.avif');
   });
 
+  test('writes the sizes of the originals rendered when asked', async () => {
+    put('3_3.jpg', 'autoorient.jpg');
+    const sizes = path.join(dir, 'sizes.csv');
+    await backfillAvif(active, tempStorage, { ...options, sizes }, log);
+    const lines = fs.readFileSync(sizes, 'utf8').trim().split('\n');
+    expect(lines[0]).toBe('filename,width,height,file_size');
+    // after the EXIF orientation; the SVG at its own size (521.333 x 578.832), its sanitized copy not stored
+    expect(lines.slice(1).sort()).toEqual([
+      `1_1.jpg,426,592,${fs.statSync('test/data/violin.jpg').size}`,
+      `2_2.svg,521,579,${fs.statSync('test/data/pipe_organ.svg').size}`,
+      `3_3.jpg,133,200,${fs.statSync('test/data/autoorient.jpg').size}`
+    ]);
+
+    // appended by the next run, header kept
+    put('4_4.png', 'piano.png');
+    await backfillAvif(active, tempStorage, { ...options, sizes }, log);
+    const all = fs.readFileSync(sizes, 'utf8').trim().split('\n');
+    expect(all).toHaveLength(5);
+    expect(all.filter(line => line.startsWith('filename'))).toHaveLength(1);
+  });
+
   test('counts a failed image and goes on', async () => {
     put('0_9.jpg', 'invalid_content.jpg');
     const result = await backfillAvif(active, tempStorage, options, log);

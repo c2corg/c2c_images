@@ -297,6 +297,11 @@ references could run when the file is opened directly. It takes every SVG,
 with its AVIF thumbnails or not. `--svg-only` takes the SVG originals only,
 to do them first.
 
+`--sizes=<file>` appends `filename,width,height,file_size` of each original
+rendered to a CSV file (created with its header), for the image documents of
+v6_api: the size after the EXIF orientation, for an SVG its own width and
+height.
+
 SIGINT and SIGTERM stop it after the current batch. `AVIF_QUALITY` and
 `AVIF_EFFORT` apply as for the uploads.
 
