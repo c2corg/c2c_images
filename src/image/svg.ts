@@ -12,8 +12,9 @@ const purify = createDOMPurify(new JSDOM('').window);
 // url(...) pointing outside the document, in an attribute or a style sheet. Local references may be quoted and spaced:
 // url('#a') and url( "#a" ) are local too
 const externalUrl = /url\((?![\s'"]*#)/i;
-// image/jpg: not a registered type, but written by some editors, and shown by browsers
-const allowedHref = /^(#|data:image\/(png|jpe?g|gif|webp);)/i;
+// image/jpg: not a registered type, but written by some editors, and shown by browsers. image/svg+xml: an SVG
+// referenced by <image> is rendered as an image, without scripts or external resources (logos in some topos)
+const allowedHref = /^(#|data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,])/i;
 
 purify.addHook('uponSanitizeElement', (node, data) => {
   if (data.tagName === 'style') {

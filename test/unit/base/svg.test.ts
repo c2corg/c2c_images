@@ -47,6 +47,11 @@ describe('sanitizeSvg', () => {
       'embedded image/jpg images',
       '<image width="1" height="1" xlink:href="data:image/jpg;base64,AAAA"/>',
       'data:image/jpg;base64,AAAA'
+    ],
+    [
+      'embedded SVG images',
+      '<image width="1" height="1" xlink:href="data:image/svg+xml;base64,PHN2Zy8+"/>',
+      'data:image/svg+xml;base64,PHN2Zy8+'
     ]
   ])('keeps the %s', (_, element, text) => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">${element}</svg>`;
