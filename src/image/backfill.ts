@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import sharp from 'sharp';
+
 import { RESIZING_CONFIG } from '../config.js';
 import type { LocalStorage, Storage } from '../storage/storage.js';
 
@@ -29,6 +31,8 @@ export interface BackfillOptions {
   sanitizeSvg?: boolean | undefined;
   /** only the SVG originals: they can be done first, in a short pass */
   svgOnly?: boolean | undefined;
+  /** CSV file where to append filename,width,height,file_size of each original rendered (for the documents of v6_api) */
+  sizes?: string | undefined;
   /** stop after the current batch */
   signal?: AbortSignal | undefined;
 }
@@ -52,6 +56,15 @@ interface Logger {
   info: (message: string) => void;
   error: (message: string, error?: unknown) => void;
 }
+
+/**
+ * The size of an image as a browser shows it: after its EXIF orientation; for an SVG, its own width and height (user
+ * units, the default density), not the size of its thumbnails.
+ */
+const imageSize = async (file: string): Promise<{ width: number; height: number }> => {
+  const metadata = await sharp(file, { limitInputPixels: false }).metadata();
+  return metadata.autoOrient;
+};
 
 const ORIGINAL = /^(\d+_\d+)\.(jpg|png|gif|svg)$/;
 
@@ -81,11 +94,16 @@ export const backfillAvif = async (
   const pending = new Map<string, { original?: string; avif: Set<string> }>();
   let batch: string[] = [];
 
+  if (options.sizes && !fs.existsSync(options.sizes)) {
+    await fs.promises.writeFile(options.sizes, 'filename,width,height,file_size\n');
+  }
+
   const render = async (key: string): Promise<void> => {
     const dir = temp.path();
     const { ext } = path.parse(key);
     try {
       await active.copy(key, temp);
+      let fileSize = (await fs.promises.stat(temp.path(key))).size;
       // the old SVGs were stored as uploaded (v6_images): rendered from their sanitized copy, the original unchanged
       // unless sanitizeSvg
       let replaceOriginal = false;
@@ -94,7 +112,11 @@ export const backfillAvif = async (
         const sanitized = sanitizeSvg(svg);
         await fs.promises.writeFile(temp.path(key), sanitized);
         replaceOriginal = Boolean(options.sanitizeSvg) && sanitized !== svg;
+        if (replaceOriginal) {
+          fileSize = Buffer.byteLength(sanitized);
+        }
       }
+      const size = options.sizes ? await imageSize(temp.path(key)) : undefined;
       const keys: string[] = [];
       for (const config of RESIZING_CONFIG) {
         await createThumbnail(dir, key, config, '.avif');
@@ -112,6 +134,9 @@ export const backfillAvif = async (
         await temp.move(key, active);
         result.sanitized++;
         log.info(`Backfill: ${key} replaced by its sanitized copy`);
+      }
+      if (options.sizes && size) {
+        await fs.promises.appendFile(options.sizes, `${key},${size.width},${size.height},${fileSize}\n`);
       }
     } catch (error) {
       result.failed++;
