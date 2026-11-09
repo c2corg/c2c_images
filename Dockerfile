@@ -24,8 +24,13 @@ RUN apt-get update \
         fonts-linuxlibertine\
         fonts-inconsolata \
         fonts-cantarell \
+        fonts-crosextra-carlito \
+        fonts-crosextra-caladea \
+        fonts-comic-neue \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+# the fonts named by the SVGs of the site and not installed: the closest free ones
+COPY fonts/local.conf /etc/fonts/local.conf
 COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
 WORKDIR /usr/bin/app
 COPY --from=build --chown=node:node /usr/package.json ./

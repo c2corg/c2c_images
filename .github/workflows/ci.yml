@@ -65,6 +65,20 @@ jobs:
           done
           docker exec images ls -l /tmp/incoming
           test "$(docker exec images ls /tmp/incoming | wc -l)" -eq 16
+      - name: Fonts of the SVGs
+        # the aliases of fonts/local.conf (a - in a name is escaped for fc-match)
+        run: |
+          check() {
+            found=$(docker exec images fc-match "$1")
+            echo "$1: $found"
+            echo "$found" | grep -q "$2"
+          }
+          check 'Arial' 'LiberationSans-Regular'
+          check 'Arial\-BoldMT' 'LiberationSans-Bold'
+          check 'Verdana' 'DejaVuSans.ttf'
+          check 'Calibri' 'Carlito-Regular'
+          check 'Comic Sans MS' 'ComicNeue-Regular'
+          check 'Impact' 'NimbusSansNarrow-Bold'
       - name: Health check of the container
         run: |
           for i in $(seq 1 30); do
