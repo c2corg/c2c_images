@@ -83,6 +83,26 @@ describe('POST /upload', () => {
     }
   });
 
+  test('stores a HEIC as JPEG', async () => {
+    const response = await request(app).post('/upload').attach('file', 'test/data/heic-irot.heic');
+    expect(response.status).toBe(200);
+    const { filename: key } = response.body as { filename: string };
+    expect(key).toMatch(/^\d+_\d+\.jpg$/);
+    expect(await incomingStorage.exists(key)).toBe(true);
+    for (const resizedKey of allThumbnailKeys(key)) {
+      expect(await incomingStorage.exists(resizedKey)).toBe(true);
+    }
+  });
+
+  test('refuses a HEIC that cannot be decoded', async () => {
+    // headers read, image data zeroed
+    const heic = fs.readFileSync('test/data/heic-irot.heic');
+    heic.fill(0, heic.indexOf('mdat') + 4);
+    const response = await request(app).post('/upload').attach('file', heic, 'broken.heic');
+    expect(response.status).toBe(400);
+    expect(response.text).toBe('Unsupported image format.');
+  });
+
   test('svg case', async () => {
     const response = await request(app).post('/upload').attach('file', 'test/data/pipe_organ.svg');
     expect(response.status).toBe(200);

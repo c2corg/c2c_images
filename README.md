@@ -188,6 +188,11 @@ Supported file formats are:
 - png
 - gif
 - svg
+- heic (HEIF with HEVC images): stored as jpeg, upright, in sRGB, with its
+  EXIF. The prebuilt libvips of sharp does not decode HEVC (patents): the
+  image is decoded by libheif and libde265 compiled to WebAssembly
+  ([heic-decode](https://github.com/catdad-experiments/heic-decode)), in a
+  worker thread, two at a time. AVIF (HEIF with AV1 images) is not accepted.
 
 Note that the server responds as soon as 'base' thumbnails are generated
 (jpeg or png), but that modern formats (if enabled) are generated

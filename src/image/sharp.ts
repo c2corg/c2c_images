@@ -9,7 +9,7 @@ sharp.cache(false);
 
 // The input of every image operation, limited to MAX_IMAGE_PIXELS against the decompression bombs.
 // SVG are rendered at SVG_DENSITY dpi, as rsvg-convert did; animated GIF keep all their frames when asked.
-export const openImage = (file: string, options: { svg?: boolean; animated?: boolean } = {}): Sharp => {
+export const openImage = (file: string | Buffer, options: { svg?: boolean; animated?: boolean } = {}): Sharp => {
   const sharpOptions: SharpOptions = { failOn: 'error', limitInputPixels: MAX_IMAGE_PIXELS };
   if (options.svg) {
     sharpOptions.density = SVG_DENSITY;
