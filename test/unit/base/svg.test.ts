@@ -86,6 +86,14 @@ describe('sanitizeSvg', () => {
     );
   });
 
+  test('keeps the SVG elements written with a prefix (svg:svg), without it', () => {
+    const clean = sanitizeSvg(
+      '<svg:svg xmlns:svg="http://www.w3.org/2000/svg" width="10" height="10"><svg:rect fill="url(#g)" width="5" height="5"/><svg:script>alert(1)</svg:script></svg:svg>'
+    );
+    expect(clean).toContain('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect fill="url(#g)"');
+    expect(clean).not.toContain('script');
+  });
+
   test.each([
     [
       'external entities',
