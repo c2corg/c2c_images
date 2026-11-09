@@ -120,6 +120,10 @@ Default is `31457280` (30 MiB).
 (400 above), against decompression bombs. Default is `268402689` (16383²,
 the limit of libvips).
 
+`MAX_SVG_IMAGE_PIXELS`: Maximum width x height x frames of the raster images
+embedded in an uploaded SVG, together (400 above). librsvg decodes them at
+their full size, whatever the size of the thumbnails. Default is `25000000`.
+
 Uploaded SVG are sanitized: only static drawings are kept, without scripts,
 event handlers, animations or references to external resources.
 

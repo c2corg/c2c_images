@@ -1,9 +1,12 @@
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import sharp from 'sharp';
 import { describe, expect, test } from 'vitest';
 
-import { rasterShare, sanitizeSvg } from '../../../src/image/svg.js';
+import { checkEmbeddedImages, embeddedImagePixels, rasterShare, sanitizeSvg } from '../../../src/image/svg.js';
+import { svgWithEmbeddedImage } from '../../helpers/image.js';
 
 const unsafe = fs.readFileSync('test/data/unsafe.svg', 'utf8');
 
@@ -117,5 +120,66 @@ describe('rasterShare', () => {
 
   test('a document without size', () => {
     expect(rasterShare('<svg xmlns="http://www.w3.org/2000/svg"><image width="10" height="10"/></svg>')).toBe(0);
+  });
+});
+
+describe('embeddedImagePixels', () => {
+  const svg = (content: string): string =>
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">${content}</svg>`;
+  const png = async (width: number, height: number): Promise<string> =>
+    (
+      await sharp({ create: { width, height, channels: 3, background: '#000' } })
+        .png()
+        .toBuffer()
+    ).toString('base64');
+
+  test('none in a drawing', async () => {
+    expect(await embeddedImagePixels(fs.readFileSync('test/data/pipe_organ.svg', 'utf8'))).toBe(0);
+  });
+
+  test('the photo under a route', async () => {
+    expect(await embeddedImagePixels(fs.readFileSync('test/data/route-on-photo.svg', 'utf8'))).toBeGreaterThan(0);
+  });
+
+  test('all the images, from their size and not the size they are drawn at', async () => {
+    const content = svg(
+      `<image width="1" height="1" href="data:image/png;base64,${await png(300, 200)}"/>` +
+        `<filter id="f"><feImage xlink:href="data:image/png;base64,${await png(10, 10)}"/></filter>`
+    );
+    expect(await embeddedImagePixels(content)).toBe(300 * 200 + 10 * 10);
+  });
+
+  test('the images of the embedded SVGs, base64 or URL-encoded', async () => {
+    const inner = svg(`<image href="data:image/png;base64,${await png(30, 20)}"/>`);
+    const content = svg(
+      `<image href="data:image/svg+xml;base64,${Buffer.from(inner).toString('base64')}"/>` +
+        `<image href="data:image/svg+xml,${encodeURIComponent(inner)}"/>`
+    );
+    expect(await embeddedImagePixels(content)).toBe(2 * 30 * 20);
+  });
+
+  test('SVGs nested too deep count as too large', async () => {
+    let content = svg('');
+    for (let i = 0; i < 6; i++) {
+      content = svg(`<image href="data:image/svg+xml,${encodeURIComponent(content)}"/>`);
+    }
+    expect(await embeddedImagePixels(content)).toBe(Number.POSITIVE_INFINITY);
+  });
+
+  test('ignores the unreadable images and the local references', async () => {
+    expect(await embeddedImagePixels(svg('<image href="data:image/png;base64,AAAA"/><image href="#a"/><image/>'))).toBe(
+      0
+    );
+  });
+
+  test('checkEmbeddedImages refuses the files over the limit', async () => {
+    const file = path.join(os.tmpdir(), `embedded-${process.pid}.svg`);
+    fs.writeFileSync(file, await svgWithEmbeddedImage(100, 50));
+    try {
+      await expect(checkEmbeddedImages(file, 5000)).resolves.toBeUndefined();
+      await expect(checkEmbeddedImages(file, 4999)).rejects.toThrow('Image too large.');
+    } finally {
+      fs.rmSync(file);
+    }
   });
 });

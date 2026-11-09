@@ -2,6 +2,9 @@ import fs from 'node:fs';
 
 import createDOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
+import sharp from 'sharp';
+
+import { MAX_SVG_IMAGE_PIXELS } from '../config.js';
 
 // Uploaded SVG are published as they are, on the media domain: only static drawings are kept. Scripts, event handlers,
 // animations, foreign objects and the references to anything outside the file (links, external images, CSS imports and
@@ -107,6 +110,72 @@ export const rasterShare = (svg: string): number => {
 
 export const isDrawing = async (file: string): Promise<boolean> =>
   rasterShare(await fs.promises.readFile(file, 'utf8')) < 0.5;
+
+// an SVG embedded in an SVG embedded in... deeper than that is refused
+const MAX_SVG_NESTING = 4;
+
+// data:image/<type>[;<parameters>][;base64],<data>
+const decodeDataUrl = (url: string): { type: string; data: Buffer } | undefined => {
+  const value = url.trim();
+  const comma = value.indexOf(',');
+  if (!value.toLowerCase().startsWith('data:image/') || comma < 0) {
+    return undefined;
+  }
+  const [type = '', ...parameters] = value.slice('data:image/'.length, comma).toLowerCase().split(';');
+  const payload = value.slice(comma + 1);
+  if (parameters.includes('base64')) {
+    return { type, data: Buffer.from(payload, 'base64') };
+  }
+  try {
+    return { type, data: Buffer.from(decodeURIComponent(payload)) };
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * The pixels (width x height x frames) of the raster images embedded in an SVG (data:image/... in <image> and
+ * <feImage>), the embedded SVGs searched in turn. librsvg decodes them at their full size, whatever the size of the
+ * rendering: MAX_IMAGE_PIXELS does not limit them (c2corg/c2c_images#1215). Read from their headers only.
+ */
+export const embeddedImagePixels = async (svg: string, depth = 0): Promise<number> => {
+  if (depth > MAX_SVG_NESTING) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const root = new JSDOM(svg, { contentType: 'image/svg+xml' }).window.document.documentElement;
+  let pixels = 0;
+  for (const element of [...root.getElementsByTagName('image'), ...root.getElementsByTagName('feImage')]) {
+    const href = element.getAttribute('href') ?? element.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+    const image = href ? decodeDataUrl(href) : undefined;
+    if (!image) {
+      continue;
+    }
+    if (image.type === 'svg+xml') {
+      try {
+        pixels += await embeddedImagePixels(image.data.toString('utf8'), depth + 1);
+      } catch {
+        // not well-formed: librsvg renders nothing either
+      }
+      continue;
+    }
+    try {
+      const { width = 0, height = 0, pages = 1 } = await sharp(image.data, { limitInputPixels: false }).metadata();
+      pixels += width * height * pages;
+    } catch {
+      // unreadable: librsvg (same image decoders) does not draw it either
+    }
+  }
+  return pixels;
+};
+
+/**
+ * Throws 'Image too large.' when the images embedded in an SVG file are over MAX_SVG_IMAGE_PIXELS together.
+ */
+export const checkEmbeddedImages = async (file: string, maxPixels = MAX_SVG_IMAGE_PIXELS): Promise<void> => {
+  if ((await embeddedImagePixels(await fs.promises.readFile(file, 'utf8'))) > maxPixels) {
+    throw new Error('Image too large.');
+  }
+};
 
 export const sanitizeSvgFile = async (file: string): Promise<void> => {
   const svg = await fs.promises.readFile(file, 'utf8');

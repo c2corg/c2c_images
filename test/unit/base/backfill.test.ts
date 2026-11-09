@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { backfillAvif, type BackfillOptions } from '../../../src/image/backfill.js';
 import { LocalStorage, tempStorage } from '../../../src/storage/storage.js';
+import { svgWithEmbeddedImage } from '../../helpers/image.js';
 
 const log = { info: vi.fn(), error: vi.fn() };
 const options: BackfillOptions = { concurrency: 2, pauseMs: 0, dryRun: false, reencodeJpeg: false };
@@ -150,5 +151,13 @@ describe('backfillAvif', { timeout: 60_000 }, () => {
     const result = await backfillAvif(active, tempStorage, options, log);
     expect(result).toMatchObject({ missing: 3, rendered: 2, failed: 1 });
     expect(log.error).toHaveBeenCalledWith('Backfill: 0_9.jpg failed', expect.anything());
+  });
+
+  test('skips the SVGs embedding images over MAX_SVG_IMAGE_PIXELS', async () => {
+    fs.writeFileSync(path.join(dir, '0_8.svg'), await svgWithEmbeddedImage(6000, 5000));
+    const result = await backfillAvif(active, tempStorage, options, log);
+    expect(result).toMatchObject({ missing: 3, rendered: 2, failed: 1 });
+    expect(log.error).toHaveBeenCalledWith('Backfill: 0_8.svg failed', expect.anything());
+    expect(files().filter(file => file.startsWith('0_8'))).toEqual(['0_8.svg']);
   });
 });

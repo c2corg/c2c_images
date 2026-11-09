@@ -7,7 +7,7 @@ import sharp from 'sharp';
 import { RESIZING_CONFIG } from '../config.js';
 import type { LocalStorage, Storage } from '../storage/storage.js';
 
-import { sanitizeSvg } from './svg.js';
+import { checkEmbeddedImages, sanitizeSvg } from './svg.js';
 import { removeFromTemp } from './temp.js';
 import { createThumbnail } from './thumbnails.js';
 
@@ -111,6 +111,8 @@ export const backfillAvif = async (
         const svg = await fs.promises.readFile(temp.path(key), 'utf8');
         const sanitized = sanitizeSvg(svg);
         await fs.promises.writeFile(temp.path(key), sanitized);
+        // skipped (failed) rather than a librsvg panic, which aborts the process (#1215)
+        await checkEmbeddedImages(temp.path(key));
         replaceOriginal = Boolean(options.sanitizeSvg) && sanitized !== svg;
         if (replaceOriginal) {
           fileSize = Buffer.byteLength(sanitized);

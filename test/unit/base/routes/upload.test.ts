@@ -8,6 +8,7 @@ import { TEMP_FOLDER } from '../../../../src/config.js';
 import { app } from '../../../../src/http/app.js';
 import { allThumbnailKeys } from '../../../../src/image/thumbnails.js';
 import { incomingStorage } from '../../../../src/storage/storage.js';
+import { svgWithEmbeddedImage } from '../../../helpers/image.js';
 
 describe('OPTIONS /upload', () => {
   test('returns CORS options', async () => {
@@ -120,6 +121,14 @@ describe('POST /upload', () => {
   test('refuses the images over MAX_IMAGE_PIXELS (decompression bombs)', async () => {
     // 20000 x 20000 pixels in 48 kB
     const response = await request(app).post('/upload').attach('file', 'test/data/bomb.png');
+    expect(response.status).toBe(400);
+    expect(response.text).toBe('Image too large.');
+  });
+
+  test('refuses the SVGs embedding images over MAX_SVG_IMAGE_PIXELS', async () => {
+    // drawn at 100 x 100, decoded whole by librsvg
+    const svg = await svgWithEmbeddedImage(6000, 5000);
+    const response = await request(app).post('/upload').attach('file', Buffer.from(svg), 'big.svg');
     expect(response.status).toBe(400);
     expect(response.text).toBe('Image too large.');
   });
