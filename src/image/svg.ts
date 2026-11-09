@@ -9,9 +9,11 @@ import { JSDOM } from 'jsdom';
 
 const purify = createDOMPurify(new JSDOM('').window);
 
-// url(...) pointing outside the document, in an attribute or a style sheet
-const externalUrl = /url\(\s*['"]?\s*(?!#)/i;
-const allowedHref = /^(#|data:image\/(png|jpeg|gif|webp);)/i;
+// url(...) pointing outside the document, in an attribute or a style sheet. Local references may be quoted and spaced:
+// url('#a') and url( "#a" ) are local too
+const externalUrl = /url\((?![\s'"]*#)/i;
+// image/jpg: not a registered type, but written by some editors, and shown by browsers
+const allowedHref = /^(#|data:image\/(png|jpe?g|gif|webp);)/i;
 
 purify.addHook('uponSanitizeElement', (node, data) => {
   if (data.tagName === 'style') {
