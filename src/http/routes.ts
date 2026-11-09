@@ -17,7 +17,7 @@ import {
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
 import { rotateImages } from '../image/rotate.js';
-import { sanitizeSvgFile } from '../image/svg.js';
+import { checkEmbeddedImages, sanitizeSvgFile } from '../image/svg.js';
 import { removeFromTemp } from '../image/temp.js';
 import { allThumbnailKeys, baseThumbnailKeys, createThumbnails, modernThumbnailKeys } from '../image/thumbnails.js';
 import { log } from '../log.js';
@@ -116,6 +116,13 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
     } catch {
       promRefusedUploadsCounter.inc({ reason: 'svg' });
       throw createHttpError(400, 'Unsupported image format.');
+    }
+    // the embedded images are decoded whole by librsvg, whatever the size of the rendering (#1215)
+    try {
+      await checkEmbeddedImages(file.path);
+    } catch {
+      promRefusedUploadsCounter.inc({ reason: 'pixels' });
+      throw createHttpError(400, 'Image too large.');
     }
   }
 
