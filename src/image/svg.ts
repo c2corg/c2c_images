@@ -12,8 +12,9 @@ const purify = createDOMPurify(new JSDOM('').window);
 // url(...) pointing outside the document, in an attribute or a style sheet. Local references may be quoted and spaced:
 // url('#a') and url( "#a" ) are local too
 const externalUrl = /url\((?![\s'"]*#)/i;
-// image/jpg: not a registered type, but written by some editors, and shown by browsers
-const allowedHref = /^(#|data:image\/(png|jpe?g|gif|webp);)/i;
+// image/jpg: not a registered type, but written by some editors, and shown by browsers. image/svg+xml: an SVG
+// referenced by <image> is rendered as an image, without scripts or external resources (logos in some topos)
+const allowedHref = /^(#|data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,])/i;
 
 purify.addHook('uponSanitizeElement', (node, data) => {
   if (data.tagName === 'style') {
@@ -36,14 +37,37 @@ purify.addHook('uponSanitizeAttribute', (_node, data) => {
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 /**
+ * The SVG elements written with a prefix (<svg:svg>, <svg:path>, as some Inkscape files) without it: DOMPurify knows the
+ * elements by their name only, and refused the root.
+ */
+const unprefix = (document: Document, element: Element): Element => {
+  let result = element;
+  if (element.namespaceURI === SVG_NAMESPACE && element.prefix) {
+    result = document.createElementNS(SVG_NAMESPACE, element.localName);
+    for (const attribute of [...element.attributes]) {
+      result.setAttributeNodeNS(attribute.cloneNode() as Attr);
+    }
+    result.append(...element.childNodes);
+    element.replaceWith(result);
+  }
+  for (const child of [...result.children]) {
+    unprefix(document, child);
+  }
+  return result;
+};
+
+/**
  * Sanitizes an SVG document. Throws when it is not well-formed XML with an svg root (external entities included).
  */
 export const sanitizeSvg = (svg: string): string => {
   const { window } = new JSDOM(svg, { contentType: 'image/svg+xml' });
-  const root = window.document.documentElement;
-  if (root.localName !== 'svg' || root.namespaceURI !== SVG_NAMESPACE) {
+  if (
+    window.document.documentElement.localName !== 'svg' ||
+    window.document.documentElement.namespaceURI !== SVG_NAMESPACE
+  ) {
     throw new Error('Not an SVG document');
   }
+  const root = unprefix(window.document, window.document.documentElement);
   // An element removed goes with its content, as browsers render nothing inside an SVG element they do not know: kept,
   // the <rect> of the text area of Inkscape's flowed text (<flowRoot>, SVG 1.2 draft) became a visible box.
   purify.sanitize(root, {

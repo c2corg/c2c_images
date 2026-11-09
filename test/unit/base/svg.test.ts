@@ -47,6 +47,11 @@ describe('sanitizeSvg', () => {
       'embedded image/jpg images',
       '<image width="1" height="1" xlink:href="data:image/jpg;base64,AAAA"/>',
       'data:image/jpg;base64,AAAA'
+    ],
+    [
+      'embedded SVG images',
+      '<image width="1" height="1" xlink:href="data:image/svg+xml;base64,PHN2Zy8+"/>',
+      'data:image/svg+xml;base64,PHN2Zy8+'
     ]
   ])('keeps the %s', (_, element, text) => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">${element}</svg>`;
@@ -79,6 +84,14 @@ describe('sanitizeSvg', () => {
     expect((await render(Buffer.from(sanitizeSvg(original.toString('utf8'))))).equals(await render(original))).toBe(
       true
     );
+  });
+
+  test('keeps the SVG elements written with a prefix (svg:svg), without it', () => {
+    const clean = sanitizeSvg(
+      '<svg:svg xmlns:svg="http://www.w3.org/2000/svg" width="10" height="10"><svg:rect fill="url(#g)" width="5" height="5"/><svg:script>alert(1)</svg:script></svg:svg>'
+    );
+    expect(clean).toContain('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect fill="url(#g)"');
+    expect(clean).not.toContain('script');
   });
 
   test.each([
