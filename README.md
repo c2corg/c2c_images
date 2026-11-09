@@ -100,7 +100,8 @@ thumbnails not rendered yet when an image is published. Default is `20000`.
 `JPEG_QUALITY`, `AVIF_QUALITY`, `WEBP_QUALITY`: Quality of the thumbnails,
 per format: the scales differ. Defaults are `82` (JPEG, through mozjpeg),
 `55` (AVIF) and `80` (WebP). `AVIF_EFFORT`: CPU spent by the AVIF encoder,
-`0` (fast) to `9` (smaller files). Default is `4`.
+`0` (fast) to `9` (smaller files). Default is `3`: 4 to 5 times faster than
+`4`, for files of the same size.
 
 `CACHE_CONTROL`: Cache-Control value to be set to all the images uploaded
 to s3. Default is `public, max-age=3600`.
