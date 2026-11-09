@@ -1,10 +1,11 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { RESIZING_CONFIG } from '../config.js';
 import type { LocalStorage, Storage } from '../storage/storage.js';
 
-import { sanitizeSvgFile } from './svg.js';
+import { sanitizeSvg } from './svg.js';
 import { removeFromTemp } from './temp.js';
 import { createThumbnail } from './thumbnails.js';
 
@@ -21,6 +22,11 @@ export interface BackfillOptions {
   dryRun: boolean;
   /** also render again the JPEG thumbnails of the JPEG originals (those of the SVG originals always are) */
   reencodeJpeg: boolean;
+  /**
+   * also replace the SVG originals by their sanitized copy (v6_images stored them as uploaded), and take every SVG,
+   * with its AVIF thumbnails or not
+   */
+  sanitizeSvg?: boolean | undefined;
   /** stop after the current batch */
   signal?: AbortSignal | undefined;
 }
@@ -28,9 +34,11 @@ export interface BackfillOptions {
 export interface BackfillResult {
   /** originals seen */
   scanned: number;
-  /** originals without all their AVIF thumbnails */
+  /** originals to render: without all their AVIF thumbnails, or SVG with sanitizeSvg */
   missing: number;
   rendered: number;
+  /** SVG originals replaced by their sanitized copy */
+  sanitized: number;
   failed: number;
   /** the last original done: resume after it */
   lastKey: string | undefined;
@@ -61,6 +69,7 @@ export const backfillAvif = async (
     scanned: 0,
     missing: 0,
     rendered: 0,
+    sanitized: 0,
     failed: 0,
     lastKey: undefined,
     stopped: false
@@ -76,8 +85,13 @@ export const backfillAvif = async (
     try {
       await active.copy(key, temp);
       // the old SVGs were stored as uploaded (v6_images): rendered from their sanitized copy, the original unchanged
+      // unless sanitizeSvg
+      let replaceOriginal = false;
       if (ext === '.svg') {
-        await sanitizeSvgFile(temp.path(key));
+        const svg = await fs.promises.readFile(temp.path(key), 'utf8');
+        const sanitized = sanitizeSvg(svg);
+        await fs.promises.writeFile(temp.path(key), sanitized);
+        replaceOriginal = Boolean(options.sanitizeSvg) && sanitized !== svg;
       }
       const keys: string[] = [];
       for (const config of RESIZING_CONFIG) {
@@ -91,6 +105,12 @@ export const backfillAvif = async (
       }
       await Promise.all(keys.map(async thumbnail => temp.move(thumbnail, active)));
       result.rendered++;
+      // last: a failure before leaves the original as it was
+      if (replaceOriginal) {
+        await temp.move(key, active);
+        result.sanitized++;
+        log.info(`Backfill: ${key} replaced by its sanitized copy`);
+      }
     } catch (error) {
       result.failed++;
       log.error(`Backfill: ${key} failed`, error);
@@ -113,7 +133,7 @@ export const backfillAvif = async (
     }
     result.lastKey = keys.at(-1);
     log.info(
-      `Backfill: ${result.scanned} images seen, ${result.missing} without AVIF, ${result.rendered} rendered, ${result.failed} failed, last ${result.lastKey}`
+      `Backfill: ${result.scanned} images seen, ${result.missing} without AVIF, ${result.rendered} rendered, ${result.sanitized} SVG sanitized, ${result.failed} failed, last ${result.lastKey}`
     );
   };
 
@@ -124,7 +144,8 @@ export const backfillAvif = async (
       return;
     }
     result.scanned++;
-    if (suffixes.every(suffix => image.avif.has(suffix))) {
+    const sanitize = Boolean(options.sanitizeSvg) && image.original.endsWith('.svg');
+    if (!sanitize && suffixes.every(suffix => image.avif.has(suffix))) {
       return;
     }
     result.missing++;

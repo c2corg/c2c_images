@@ -45,6 +45,7 @@ describe('backfillAvif', { timeout: 60_000 }, () => {
       scanned: 3,
       missing: 2,
       rendered: 0,
+      sanitized: 0,
       failed: 0,
       stopped: false,
       lastKey: '2_2.svg'
@@ -92,6 +93,28 @@ describe('backfillAvif', { timeout: 60_000 }, () => {
     await backfillAvif(active, tempStorage, { ...options, reencodeJpeg: true }, log);
     expect(fs.statSync(path.join(dir, '1_1BI.jpg')).size).not.toBe(before);
     expect(files()).toEqual(expect.arrayContaining(['1_1MI.jpg', '1_1SI.jpg', '2_2BI.jpg']));
+  });
+
+  test('replaces the SVG originals by their sanitized copy when asked, even with their AVIF thumbnails', async () => {
+    await backfillAvif(active, tempStorage, options, log);
+    put('3_3.svg', 'unsafe.svg');
+    for (const suffix of ['BI', 'MI', 'SI']) {
+      put(`3_3${suffix}.avif`, 'piano.png');
+    }
+    expect(fs.readFileSync(path.join(dir, '3_3.svg'), 'utf8')).toMatch(/<script/);
+
+    // without the option, an SVG with its AVIF thumbnails is left as it is
+    expect(await backfillAvif(active, tempStorage, options, log)).toMatchObject({ missing: 0, sanitized: 0 });
+
+    const result = await backfillAvif(active, tempStorage, { ...options, sanitizeSvg: true }, log);
+    expect(result).toMatchObject({ missing: 2, rendered: 2, failed: 0 });
+    expect(result.sanitized).toBeGreaterThanOrEqual(1);
+    const unsafe = fs.readFileSync(path.join(dir, '3_3.svg'), 'utf8');
+    expect(unsafe).not.toMatch(/<script|onload|javascript:/);
+    expect(unsafe).toMatch(/<svg/);
+    expect(fs.readFileSync(path.join(dir, '2_2.svg'), 'utf8')).toMatch(/<svg/);
+    expect(files()).toEqual(expect.arrayContaining(['3_3BI.jpg', '3_3BI.avif', '1_1.jpg']));
+    expect(fs.readdirSync(tempStorage.path()).filter(file => /^(2_2|3_3)[A-Z.]/.test(file))).toEqual([]);
   });
 
   test('counts a failed image and goes on', async () => {
