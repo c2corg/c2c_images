@@ -34,6 +34,34 @@ describe('sanitizeSvg', () => {
     expect(clean).toContain(text);
   });
 
+  test.each([
+    ['quoted local references', '<rect fill="url(\'#g\')"/>', `fill="url('#g')"`],
+    ['double-quoted local references', '<rect style=\'fill: url("#g")\'/>', 'fill: url(&quot;#g&quot;)'],
+    ['spaced local references', '<rect fill="url( #g )"/>', 'fill="url( #g )"'],
+    [
+      'style sheets with quoted local references',
+      '<style>rect { fill: url("#g") }</style>',
+      'rect { fill: url("#g") }'
+    ],
+    [
+      'embedded image/jpg images',
+      '<image width="1" height="1" xlink:href="data:image/jpg;base64,AAAA"/>',
+      'data:image/jpg;base64,AAAA'
+    ]
+  ])('keeps the %s', (_, element, text) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">${element}</svg>`;
+    expect(sanitizeSvg(svg)).toContain(text);
+  });
+
+  test.each([
+    ['quoted', `<rect fill="url('https://evil.example/a.svg#g')"/>`],
+    ['spaced', '<rect fill="url( https://evil.example/a.svg#g )"/>'],
+    ['in a style sheet', '<style>rect { fill: url("#g") } circle { fill: url(https://evil.example/a.svg#g) }</style>']
+  ])('removes the external references, %s', (_, element) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">${element}</svg>`;
+    expect(sanitizeSvg(svg)).not.toContain('evil.example');
+  });
+
   test('drops the elements it does not know with their content, as browsers do (Inkscape flowed text)', async () => {
     const original = fs.readFileSync('test/data/flowed-text.svg');
     const clean = sanitizeSvg(original.toString('utf8'));
