@@ -24,7 +24,7 @@ describe('configuration', () => {
       JPEG_QUALITY: 82,
       AVIF_QUALITY: 55,
       WEBP_QUALITY: 80,
-      AVIF_EFFORT: 4,
+      AVIF_EFFORT: 3,
       INCOMING_CLEANUP: 'auto',
       INCOMING_MAX_AGE_HOURS: 24,
       INCOMING_CLEANUP_INTERVAL_MINUTES: 60,

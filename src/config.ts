@@ -101,8 +101,9 @@ const Env = z.object({
   JPEG_QUALITY: quality(82),
   AVIF_QUALITY: quality(55),
   WEBP_QUALITY: quality(80),
-  // CPU spent by the AVIF encoder, 0 (fast) to 9 (small files)
-  AVIF_EFFORT: z.coerce.number().int().min(0).max(9).default(4),
+  // CPU spent by the AVIF encoder, 0 (fast) to 9 (small files). 3: 4-5 times faster than 4 on photos of the site, files
+  // the same size, a little less faithful (PSNR -0.1 to -0.5 dB) (#1201)
+  AVIF_EFFORT: z.coerce.number().int().min(0).max(9).default(3),
   AUTO_ORIENT_ORIGINAL: flag,
   GENERATE_AVIF: flag,
   GENERATE_WEBP: flag,
