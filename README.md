@@ -122,8 +122,15 @@ This is currently only for the `/upload` endpoint. Default is `*`.
 Default is `20971520` (20 MiB).
 
 `MAX_IMAGE_PIXELS`: Maximum width x height x frames of an uploaded image
-(400 above), against decompression bombs. Default is `268402689` (16383²,
-the limit of libvips).
+(400 above), against decompression bombs. Default is `100000000` (100
+megapixels: large panoramas and the high resolution modes of the phones; the
+originals are reduced to 16 megapixels at most). The images already stored
+are processed up to 16383² pixels, the limit of libvips.
+
+`MAX_HEIC_PIXELS`: Maximum width x height of an uploaded HEIC (400 above).
+HEIC are decoded whole in WebAssembly, about 800 MB at the peak for 48
+megapixels, two at a time. Default is `50000000` (50 megapixels: the 48
+megapixel HEIC of the phones).
 
 `MAX_SVG_IMAGE_PIXELS`: Maximum width x height x frames of the raster images
 embedded in an uploaded SVG, together (400 above). librsvg decodes them at

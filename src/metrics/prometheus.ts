@@ -62,8 +62,8 @@ export const promUploadedImagesCounter = new Counter({
   labelNames: ['format'] as const
 });
 
-// format: not an accepted image; svg: not a well-formed SVG; size: over MAX_UPLOAD_SIZE; pixels: over MAX_IMAGE_PIXELS
-// or MAX_SVG_IMAGE_PIXELS (embedded images); rate: over UPLOAD_RATE_LIMIT
+// format: not an accepted image; svg: not a well-formed SVG; size: over MAX_UPLOAD_SIZE; pixels: over MAX_IMAGE_PIXELS,
+// MAX_HEIC_PIXELS or MAX_SVG_IMAGE_PIXELS (embedded images); rate: over UPLOAD_RATE_LIMIT
 export const promRefusedUploadsCounter = new Counter({
   name: `${PREFIX}refused_uploads_total`,
   help: 'Uploads refused, by reason',

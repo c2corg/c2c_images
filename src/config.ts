@@ -85,8 +85,12 @@ const Env = z.object({
   TEMP_FOLDER: z.string().default(`${os.tmpdir()}/images/temp`),
   // in bytes
   MAX_UPLOAD_SIZE: positiveInt(20 * 1024 * 1024),
-  // width x height x frames of an uploaded image, against decompression bombs. Default: the limit of libvips (16383^2)
-  MAX_IMAGE_PIXELS: positiveInt(16383 * 16383),
+  // width x height x frames of an uploaded image, against decompression bombs. The originals are reduced to 16 megapixels
+  // at most (#1205): 100 leaves room for large panoramas and the 50 to 200 megapixel modes of the phones (JPEG).
+  MAX_IMAGE_PIXELS: positiveInt(100_000_000),
+  // width x height of an uploaded HEIC: decoded whole in WebAssembly, about 800 MB at the peak for 48 megapixels, two at
+  // a time. 50 covers the largest HEIC of the phones (48 megapixels).
+  MAX_HEIC_PIXELS: positiveInt(50_000_000),
   // width x height x frames of the raster images embedded in an SVG, together. librsvg decodes them whole, in memory
   // (4 bytes a pixel, and copies): about 360 MB at the peak for a 20 megapixel JPEG (c2corg/c2c_images#1215)
   MAX_SVG_IMAGE_PIXELS: positiveInt(25_000_000),
@@ -155,6 +159,7 @@ export const {
   TEMP_FOLDER,
   MAX_UPLOAD_SIZE,
   MAX_IMAGE_PIXELS,
+  MAX_HEIC_PIXELS,
   MAX_SVG_IMAGE_PIXELS,
   UPLOAD_RATE_LIMIT,
   AUTH_FAILURE_RATE_LIMIT,
