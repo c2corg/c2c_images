@@ -102,4 +102,15 @@ describe('HEIC', () => {
     fs.writeFileSync(broken, brokenHeic());
     await expect(convertHeicToJpeg(broken, path.join(dir, 'broken.jpg'))).rejects.toThrow('HEIC decoding failed');
   });
+
+  test('converts the next images after a failed conversion', async () => {
+    const broken = path.join(dir, 'broken-first.heic');
+    fs.writeFileSync(broken, brokenHeic());
+    const [failed, converted] = await Promise.allSettled([
+      convertHeicToJpeg(broken, path.join(dir, 'broken-first.jpg')),
+      convert('heic-exif')
+    ]);
+    expect(failed.status).toBe('rejected');
+    expect(converted.status).toBe('fulfilled');
+  });
 });

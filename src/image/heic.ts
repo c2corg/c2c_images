@@ -132,9 +132,8 @@ interface DecodedImage {
   data: Uint8ClampedArray;
 }
 
-// a decoding takes about 1 s and 200 MB for 12 megapixels, synchronously: in a worker, not in the event loop, and
-// 2 at most at a time. The worker ends with the decoding, and the memory of WebAssembly with it.
-const MAX_CONCURRENT_DECODINGS = 2;
+// a decoding takes about 1 s and 200 MB for 12 megapixels, synchronously: in a worker, not in the event loop. The
+// worker ends with the decoding, and the memory of WebAssembly with it.
 const DECODING_TIMEOUT = 60_000;
 
 const heicDecodeModule = createRequire(import.meta.url).resolve('heic-decode');
@@ -146,9 +145,6 @@ require(workerData.module)({ buffer: workerData.buffer }).then(
   error => parentPort.postMessage({ error: error instanceof Error ? error.message : String(error) })
 );
 `;
-
-let runningDecodings = 0;
-const waitingDecodings: (() => void)[] = [];
 
 const decodeInWorker = (buffer: Buffer): Promise<DecodedImage> =>
   new Promise((resolve, reject) => {
@@ -177,19 +173,6 @@ const decodeInWorker = (buffer: Buffer): Promise<DecodedImage> =>
     });
   });
 
-const decodeHeic = async (buffer: Buffer): Promise<DecodedImage> => {
-  if (runningDecodings >= MAX_CONCURRENT_DECODINGS) {
-    await new Promise<void>(resolve => waitingDecodings.push(resolve));
-  }
-  runningDecodings++;
-  try {
-    return await decodeInWorker(buffer);
-  } finally {
-    runningDecodings--;
-    waitingDecodings.shift()?.();
-  }
-};
-
 // the Display P3 profile of libvips, for the HEIC that describe their colours by an nclx property
 let displayP3Profile: Promise<Buffer | undefined> | undefined;
 const getDisplayP3Profile = async (): Promise<Buffer | undefined> => {
@@ -205,11 +188,7 @@ const DISPLAY_P3_PRIMARIES = 12;
 // BT.709 (the primaries of sRGB), unspecified
 const SRGB_PRIMARIES = [1, 2];
 
-/**
- * Converts a HEIC image to a JPEG: upright, in sRGB, with its EXIF (date, position, camera) and orientation 1, reduced
- * to the limits of the originals.
- */
-export const convertHeicToJpeg = async (file: string, jpegFile: string): Promise<void> => {
+const convert = async (file: string, jpegFile: string): Promise<void> => {
   const buffer = await fs.promises.readFile(file);
   const { icc, exif } = await openImage(file).metadata();
   const properties = readItemProperties(buffer);
@@ -231,7 +210,7 @@ export const convertHeicToJpeg = async (file: string, jpegFile: string): Promise
     }
   }
 
-  const { width, height, data } = await decodeHeic(buffer);
+  const { width, height, data } = await decodeInWorker(buffer);
   // a PNG carries the colour profile and the EXIF to sharp, with the pixels as decoded: sharp converts to sRGB from it
   const png = await sharp(Buffer.from(data.buffer, data.byteOffset, data.byteLength), {
     raw: { width, height, channels: 4 }
@@ -259,4 +238,19 @@ export const convertHeicToJpeg = async (file: string, jpegFile: string): Promise
     promReducedOriginalsCounter.inc({ format: 'jpg' });
   }
   await encode(image, '.jpg', { jpeg: ORIGINAL_JPEG_QUALITY }).toFile(jpegFile);
+};
+
+// One conversion at a time, decoding and encoding: the peak of one is 800 MB for 48 megapixels (MAX_HEIC_PIXELS), of
+// two at a time 1.5 GB, the memory limit of the container. The next one waits, about 5 s for 48 megapixels.
+let running: Promise<void> = Promise.resolve();
+
+/**
+ * Converts a HEIC image to a JPEG: upright, in sRGB, with its EXIF (date, position, camera) and orientation 1, reduced
+ * to the limits of the originals.
+ */
+export const convertHeicToJpeg = (file: string, jpegFile: string): Promise<void> => {
+  const conversion = running.then(() => convert(file, jpegFile));
+  // a failed conversion does not stop the next ones
+  running = conversion.catch(() => undefined);
+  return conversion;
 };
