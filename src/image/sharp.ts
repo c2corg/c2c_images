@@ -1,16 +1,20 @@
 import sharp, { type Sharp, type SharpOptions } from 'sharp';
 
-import { AVIF_EFFORT, AVIF_QUALITY, JPEG_QUALITY, MAX_IMAGE_PIXELS, WEBP_QUALITY } from '../config.js';
+import { AVIF_EFFORT, AVIF_QUALITY, JPEG_QUALITY, WEBP_QUALITY } from '../config.js';
 
 export const SVG_DENSITY = 96;
 
 // the files are read once each: no need for the cache of libvips
 sharp.cache(false);
 
-// The input of every image operation, limited to MAX_IMAGE_PIXELS against the decompression bombs.
+// The limit of libvips (16383^2). The uploads are limited to MAX_IMAGE_PIXELS before (getFileFormat): the originals
+// stored before that limit are still rotated and rendered.
+const MAX_INPUT_PIXELS = 16383 * 16383;
+
+// The input of every image operation, limited to MAX_INPUT_PIXELS against the decompression bombs.
 // SVG are rendered at SVG_DENSITY dpi, as rsvg-convert did; animated GIF keep all their frames when asked.
 export const openImage = (file: string | Buffer, options: { svg?: boolean; animated?: boolean } = {}): Sharp => {
-  const sharpOptions: SharpOptions = { failOn: 'error', limitInputPixels: MAX_IMAGE_PIXELS };
+  const sharpOptions: SharpOptions = { failOn: 'error', limitInputPixels: MAX_INPUT_PIXELS };
   if (options.svg) {
     sharpOptions.density = SVG_DENSITY;
   }

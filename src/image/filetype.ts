@@ -1,12 +1,12 @@
 import path from 'node:path';
 
-import { MAX_IMAGE_PIXELS } from '../config.js';
+import { MAX_HEIC_PIXELS, MAX_IMAGE_PIXELS } from '../config.js';
 
 import { isHeic } from './heic.js';
 import { openImage, SVG_DENSITY } from './sharp.js';
 
 // The format of an uploaded image, from its content: the extension of its key. Refuses the images over MAX_IMAGE_PIXELS
-// (all frames, SVG at the density they are rendered at), read from their headers, before decoding them.
+// (all frames, SVG at the density they are rendered at) or MAX_HEIC_PIXELS, read from their headers, before decoding them.
 export const getFileFormat = async (filename: string): Promise<string> => {
   let metadata: Awaited<ReturnType<ReturnType<typeof openImage>['metadata']>>;
   try {
@@ -36,6 +36,9 @@ export const getFileFormat = async (filename: string): Promise<string> => {
     case 'heif':
       // stored as JPEG; AVIF (AV1) is not accepted
       if (isHeic(format, compression)) {
+        if (width * height > MAX_HEIC_PIXELS) {
+          throw new Error('Image too large.');
+        }
         return 'heic';
       }
       throw new Error('Unsupported image format.');
