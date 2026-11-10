@@ -12,7 +12,7 @@ describe('configuration', () => {
       METRICS_PORT: 8081,
       METRICS_PATH: '/metrics',
       DISABLE_PROMETHEUS_METRICS: false,
-      MAX_UPLOAD_SIZE: 30 * 1024 * 1024,
+      MAX_UPLOAD_SIZE: 20 * 1024 * 1024,
       MAX_IMAGE_PIXELS: 16383 * 16383,
       UPLOAD_RATE_LIMIT: 100,
       AUTH_FAILURE_RATE_LIMIT: 10,

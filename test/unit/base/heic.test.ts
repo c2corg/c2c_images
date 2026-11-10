@@ -14,6 +14,7 @@ import { convertHeicToJpeg } from '../../../src/image/heic.js';
 // - heic-irot.heic: ICC profile, irot (rotation of the file) and EXIF Orientation 6, as in the photos of phones
 // - heic-exif.heic: ICC profile, EXIF Orientation 6, no irot
 // - heic-nclx.heic: nclx colour property (primaries 12, Display P3), no ICC profile nor EXIF
+// heic-large-exif.heic: 4000x3000 in sRGB, EXIF Orientation 6, no irot nor ICC profile
 // In sRGB, the body is (214,92,32) and the band (35,60,206) (ImageMagick, little CMS).
 const BODY = [214, 92, 32];
 const BAND = [35, 60, 206];
@@ -79,6 +80,16 @@ describe('HEIC', () => {
     expect({ width, height, orientation }).toEqual({ width: 320, height: 240, orientation: 1 });
     expectColour(await pixel(jpeg, 160, 20), BAND);
     expectColour(await pixel(jpeg, 160, 150), BODY);
+  });
+
+  // 4000x3000 as stored, a band of 300 px at the top, EXIF Orientation 6 without irot
+  test('reduces a HEIC over the limits, after its rotation', async () => {
+    const jpeg = await convert('heic-large-exif');
+    const { width, height, orientation = 1 } = await sharp(jpeg).metadata();
+    expect({ width, height, orientation }).toEqual({ width: 2304, height: 3072, orientation: 1 });
+    // rotated clockwise: the band is on the right
+    expectColour(await pixel(jpeg, 2250, 1500), [40, 60, 200]);
+    expectColour(await pixel(jpeg, 1000, 1500), [200, 100, 50]);
   });
 
   test('converts several images at a time', async () => {

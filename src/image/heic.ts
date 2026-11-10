@@ -4,7 +4,9 @@ import { Worker } from 'node:worker_threads';
 import zlib from 'node:zlib';
 
 import { log } from '../log.js';
+import { promReducedOriginalsCounter } from '../metrics/prometheus.js';
 
+import { storedSize } from './original.js';
 import { encode, openImage, ORIGINAL_JPEG_QUALITY, sharp } from './sharp.js';
 
 // HEIC: HEIF with HEVC images. The prebuilt libvips of sharp decodes AV1 (AVIF) only: HEVC is left out for its patents.
@@ -204,7 +206,8 @@ const DISPLAY_P3_PRIMARIES = 12;
 const SRGB_PRIMARIES = [1, 2];
 
 /**
- * Converts a HEIC image to a JPEG: upright, in sRGB, with its EXIF (date, position, camera) and orientation 1.
+ * Converts a HEIC image to a JPEG: upright, in sRGB, with its EXIF (date, position, camera) and orientation 1, reduced
+ * to the limits of the originals.
  */
 export const convertHeicToJpeg = async (file: string, jpegFile: string): Promise<void> => {
   const buffer = await fs.promises.readFile(file);
@@ -247,6 +250,13 @@ export const convertHeicToJpeg = async (file: string, jpegFile: string): Promise
   let image = openImage(insertPngChunks(png, chunks)).keepExif().toColourspace('srgb');
   if (rotation) {
     image = image.rotate(rotation);
+  }
+  // reduced to the limits of the originals, in the same encoding; the rotation is applied before the resize
+  const size = storedSize({ width, height });
+  if (size) {
+    const turned = rotation === 90 || rotation === 270;
+    image = image.resize(turned ? size.height : size.width, turned ? size.width : size.height, { fit: 'fill' });
+    promReducedOriginalsCounter.inc({ format: 'jpg' });
   }
   await encode(image, '.jpg', { jpeg: ORIGINAL_JPEG_QUALITY }).toFile(jpegFile);
 };

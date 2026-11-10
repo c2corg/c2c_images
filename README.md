@@ -14,12 +14,17 @@ API machine or on a separate machine.
 The original image uploaded by the user is:
 
 - optionally rotated according to the EXIF orientation value;
+- reduced when over the limits of the originals (JPEG and PNG, HEIC when
+  converted): 3072 px on the long side; panoramas (long side over twice the
+  short side) 2048 px on the short side and 16 megapixels at most. The UI
+  reduces the images before the upload: this is for the other clients;
 - uniquely renamed using a timestamp and random number;
 - stored locally in an "incoming" directory;
 - converted to smaller sizes.
 
 The image is uploaded immediately to the incoming storage.
-The user receives the renamed filename.
+The user receives the renamed filename, and the size of the original as
+stored (but SVG).
 
 ## Activation
 
@@ -114,7 +119,7 @@ to s3. Default is `public, max-age=3600`.
 This is currently only for the `/upload` endpoint. Default is `*`.
 
 `MAX_UPLOAD_SIZE`: Maximum size of an uploaded file, in bytes (413 above).
-Default is `31457280` (30 MiB).
+Default is `20971520` (20 MiB).
 
 `MAX_IMAGE_PIXELS`: Maximum width x height x frames of an uploaded image
 (400 above), against decompression bombs. Default is `268402689` (16383²,
@@ -180,7 +185,9 @@ Parameters:
 - file (File)
 
 Publishes the image to the incoming bucket, along with its generated
-thumbnails.
+thumbnails. Responds `{ success, filename, width, height, size }`: width and
+height as displayed (after the EXIF orientation), size in bytes, of the
+original as stored. No width, height nor size for SVG.
 
 Supported file formats are:
 
@@ -327,7 +334,8 @@ key, address or user agent):
   `format`, `svg`, `size`, `pixels`, `rate`), `rate_limited_requests_total`
   (`route`);
 - `published_images_total`, `unpublished_thumbnails_total`,
-  `deleted_images_total`, `rotated_images_total`;
+  `deleted_images_total`, `rotated_images_total`, `reduced_originals_total`
+  (`format`);
 - `thumbnail_duration_seconds` (`format`, `size`),
   `rotation_duration_seconds`, `autoorient_duration_seconds`;
 - `s3_request_duration_seconds` (`operation`, `outcome`: `ok`, `not_found`,

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import sharp from 'sharp';
 import request from 'supertest';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -88,6 +89,7 @@ describe('POST /upload', () => {
     expect(response.status).toBe(200);
     const { filename: key } = response.body as { filename: string };
     expect(key).toMatch(/^\d+_\d+\.jpg$/);
+    expect(response.body).toMatchObject({ width: 240, height: 320 });
     expect(await incomingStorage.exists(key)).toBe(true);
     for (const resizedKey of allThumbnailKeys(key)) {
       expect(await incomingStorage.exists(resizedKey)).toBe(true);
@@ -103,9 +105,32 @@ describe('POST /upload', () => {
     expect(response.text).toBe('Unsupported image format.');
   });
 
+  test('gives the size of the original as stored, as displayed', async () => {
+    const response = await request(app).post('/upload').attach('file', 'test/data/violin.jpg');
+    const { filename: key, width, height, size } = response.body as Record<string, unknown>;
+    const stored = path.join(process.env['INCOMING_FOLDER'] ?? '', key as string);
+    const { autoOrient } = await sharp(stored).metadata();
+    expect({ width, height, size }).toEqual({ ...autoOrient, size: fs.statSync(stored).size });
+  });
+
+  test('reduces an original over the limits', async () => {
+    const jpeg = await sharp({ create: { width: 4000, height: 3000, channels: 3, background: '#c86432' } })
+      .jpeg()
+      .toBuffer();
+    const response = await request(app).post('/upload').attach('file', jpeg, 'large.jpg');
+    expect(response.status).toBe(200);
+    const { filename: key } = response.body as { filename: string };
+    const stored = path.join(process.env['INCOMING_FOLDER'] ?? '', key);
+    expect(response.body).toMatchObject({ width: 3072, height: 2304, size: fs.statSync(stored).size });
+    const { width, height } = await sharp(stored).metadata();
+    expect({ width, height }).toEqual({ width: 3072, height: 2304 });
+  });
+
   test('svg case', async () => {
     const response = await request(app).post('/upload').attach('file', 'test/data/pipe_organ.svg');
     expect(response.status).toBe(200);
+    // the size of a drawing comes from the UI
+    expect(Object.keys(response.body as object)).toEqual(['success', 'filename']);
     const { filename: key } = JSON.parse(response.text) as { filename: string };
     expect(await incomingStorage.exists(key)).toBe(true);
     expect(allThumbnailKeys(key).length).toBe(3);
