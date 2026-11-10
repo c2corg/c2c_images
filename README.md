@@ -130,7 +130,7 @@ are processed up to 16383² pixels, the limit of libvips.
 
 `MAX_HEIC_PIXELS`: Maximum width x height of an uploaded HEIC (400 above).
 HEIC are decoded whole in WebAssembly, about 800 MB at the peak for 48
-megapixels, two at a time. Default is `50000000` (50 megapixels: the 48
+megapixels, one at a time. Default is `50000000` (50 megapixels: the 48
 megapixel HEIC of the phones).
 
 `MAX_SVG_IMAGE_PIXELS`: Maximum width x height x frames of the raster images
@@ -210,7 +210,7 @@ Supported file formats are:
   EXIF. The prebuilt libvips of sharp does not decode HEVC (patents): the
   image is decoded by libheif and libde265 compiled to WebAssembly
   ([heic-decode](https://github.com/catdad-experiments/heic-decode)), in a
-  worker thread, two at a time.
+  worker thread, one conversion at a time.
 - webp, avif, tiff: stored as jpeg, or png when they have transparency, with
   their EXIF and colour profile (CMYK converted to sRGB). AVIF upright (libvips
   applies its rotation).
