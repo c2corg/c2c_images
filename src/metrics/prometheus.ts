@@ -109,6 +109,13 @@ export const imageAutoorientHistogram = new Histogram({
   buckets: DURATION_BUCKETS
 });
 
+// the originals over the limits of #1205, uploaded by other clients than the UI, or HEIC (reduced when converted)
+export const promReducedOriginalsCounter = new Counter({
+  name: `${PREFIX}reduced_originals_total`,
+  help: 'Originals reduced to the limits of the stored images, by format as stored',
+  labelNames: ['format'] as const
+});
+
 // --- storage
 
 export const s3RequestDuration = new Histogram({

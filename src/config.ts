@@ -84,7 +84,7 @@ const Env = z.object({
 
   TEMP_FOLDER: z.string().default(`${os.tmpdir()}/images/temp`),
   // in bytes
-  MAX_UPLOAD_SIZE: positiveInt(30 * 1024 * 1024),
+  MAX_UPLOAD_SIZE: positiveInt(20 * 1024 * 1024),
   // width x height x frames of an uploaded image, against decompression bombs. Default: the limit of libvips (16383^2)
   MAX_IMAGE_PIXELS: positiveInt(16383 * 16383),
   // width x height x frames of the raster images embedded in an SVG, together. librsvg decodes them whole, in memory

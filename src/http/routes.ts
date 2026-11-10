@@ -17,6 +17,7 @@ import {
 import { autoOrient } from '../image/autoorient.js';
 import { getFileFormat } from '../image/filetype.js';
 import { convertHeicToJpeg } from '../image/heic.js';
+import { describeOriginal, reduceOriginal } from '../image/original.js';
 import { rotateImages } from '../image/rotate.js';
 import { checkEmbeddedImages, sanitizeSvgFile } from '../image/svg.js';
 import { removeFromTemp } from '../image/temp.js';
@@ -89,7 +90,16 @@ router.post('/upload', uploadRateLimit, fileParser, async (req, res) => {
   }
 });
 
-const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: true; filename: string }> => {
+// The response: the key of the original, and its size as stored (width and height as displayed, size in bytes), but SVG
+interface Uploaded {
+  success: true;
+  filename: string;
+  width?: number;
+  height?: number;
+  size?: number;
+}
+
+const upload = async (uploadedFile?: Express.Multer.File): Promise<Uploaded> => {
   const keyPrefix = generateUniqueKeyPrefix();
   const { file } = validate(uploadedFile && { file: uploadedFile }, UploadFiles);
 
@@ -145,12 +155,20 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
   // rename with 'official' extension
   const originalKey = `${keyPrefix}.${format}`;
   fs.renameSync(file.path, tempStorage.path(originalKey));
+  let stored: Omit<Uploaded, 'success' | 'filename'>;
 
   try {
     // auto orient
     if (AUTO_ORIENT_ORIGINAL && format === 'jpg') {
       await autoOrient(tempStorage.path(originalKey));
     }
+
+    // over the limits of the originals: reduced (HEIC already are)
+    if (uploadedFormat !== 'heic') {
+      await reduceOriginal(tempStorage.path(originalKey), `.${format}`);
+    }
+    // the image document takes its size from the original as stored (SVG: the size of the drawing, from the UI)
+    stored = format === 'svg' ? {} : await describeOriginal(tempStorage.path(originalKey));
 
     // create resized images
     const { allRendered } = await createThumbnails(tempStorage.path(originalKey));
@@ -178,7 +196,8 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<{ success: tr
   promUploadedImagesCounter.inc({ format: uploadedFormat });
   return {
     success: true,
-    filename: `${keyPrefix}.${format}`
+    filename: `${keyPrefix}.${format}`,
+    ...stored
   };
 };
 
