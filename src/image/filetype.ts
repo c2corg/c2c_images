@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import { MAX_HEIC_PIXELS, MAX_IMAGE_PIXELS } from '../config.js';
 
+import { isImageSequence } from './convert.js';
 import { isHeic } from './heic.js';
 import { openImage, SVG_DENSITY } from './sharp.js';
 
@@ -30,16 +31,26 @@ export const getFileFormat = async (filename: string): Promise<string> => {
     case 'jpeg':
       return 'jpg';
     case 'png':
-    case 'gif':
     case 'svg':
       return format;
+    // converted (convert.ts): the animated images and multi-page TIFF are refused
+    case 'gif':
+    case 'webp':
+    case 'tiff':
+      if (pages > 1) {
+        throw new Error('Unsupported image format.');
+      }
+      return format;
     case 'heif':
-      // stored as JPEG; AVIF (AV1) is not accepted
+      // stored as JPEG
       if (isHeic(format, compression)) {
         if (width * height > MAX_HEIC_PIXELS) {
           throw new Error('Image too large.');
         }
         return 'heic';
+      }
+      if (compression === 'av1' && pages === 1 && !(await isImageSequence(filename))) {
+        return 'avif';
       }
       throw new Error('Unsupported image format.');
     default:

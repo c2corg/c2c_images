@@ -35,8 +35,8 @@ export const storedSize = ({ width, height }: Size): Size | undefined => {
 
 /**
  * Reduces a JPEG or PNG original over the limits, in place, keeping its metadata (EXIF orientation, colour profile).
- * The other formats are kept: GIF for their animations, SVG are drawings. The UI reduces the images itself: this is for
- * the other clients.
+ * The converted formats are reduced when converted (heic.ts, convert.ts); SVG are drawings. The UI reduces the images
+ * itself: this is for the other clients.
  */
 export const reduceOriginal = async (file: string, ext: string): Promise<void> => {
   if (ext !== '.jpg' && ext !== '.png') {

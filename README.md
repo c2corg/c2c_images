@@ -14,10 +14,11 @@ API machine or on a separate machine.
 The original image uploaded by the user is:
 
 - optionally rotated according to the EXIF orientation value;
-- reduced when over the limits of the originals (JPEG and PNG, HEIC when
-  converted): 3072 px on the long side; panoramas (long side over twice the
-  short side) 2048 px on the short side and 16 megapixels at most. The UI
-  reduces the images before the upload: this is for the other clients;
+- converted when it is not JPEG, PNG or SVG (see below);
+- reduced when over the limits of the originals (all but SVG): 3072 px on the
+  long side; panoramas (long side over twice the short side) 2048 px on the
+  short side and 16 megapixels at most. The UI reduces the images before the
+  upload: this is for the other clients;
 - uniquely renamed using a timestamp and random number;
 - stored locally in an "incoming" directory;
 - converted to smaller sizes.
@@ -196,17 +197,27 @@ thumbnails. Responds `{ success, filename, width, height, size }`: width and
 height as displayed (after the EXIF orientation), size in bytes, of the
 original as stored. No width, height nor size for SVG.
 
+`POST /upload?preview=1` adds `preview`: a JPEG of the original as stored,
+480 px at most on its long side, upright, as a data URL (but SVG). The UI asks
+for it when the browser cannot decode the file (HEIC, TIFF but in Safari).
+
 Supported file formats are:
 
 - jpeg
 - png
-- gif
 - svg
 - heic (HEIF with HEVC images): stored as jpeg, upright, in sRGB, with its
   EXIF. The prebuilt libvips of sharp does not decode HEVC (patents): the
   image is decoded by libheif and libde265 compiled to WebAssembly
   ([heic-decode](https://github.com/catdad-experiments/heic-decode)), in a
-  worker thread, two at a time. AVIF (HEIF with AV1 images) is not accepted.
+  worker thread, two at a time.
+- webp, avif, tiff: stored as jpeg, or png when they have transparency, with
+  their EXIF and colour profile (CMYK converted to sRGB). AVIF upright (libvips
+  applies its rotation).
+- gif: stored as png (drawings, screenshots).
+
+Animated images (gif, webp, avif sequences) and multi-page tiff are refused.
+The gif stored before are still rendered and rotated.
 
 Note that the server responds as soon as 'base' thumbnails are generated
 (jpeg or png), but that modern formats (if enabled) are generated

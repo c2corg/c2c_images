@@ -26,7 +26,7 @@ describe('metrics', () => {
   });
 
   test.each([
-    ['format', 'test/data/music.tiff'],
+    ['format', 'test/data/unsupported.bmp'],
     ['pixels', 'test/data/bomb.png']
   ])('refused uploads: %s', async (reason, file) => {
     const before = await metricValue(metrics.promRefusedUploadsCounter, { reason });

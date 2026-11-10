@@ -15,6 +15,7 @@ import {
   UPLOAD_RATE_LIMIT
 } from '../config.js';
 import { autoOrient } from '../image/autoorient.js';
+import { CONVERTED_FORMATS, convertImage, previewDataUrl } from '../image/convert.js';
 import { getFileFormat } from '../image/filetype.js';
 import { convertHeicToJpeg } from '../image/heic.js';
 import { describeOriginal, reduceOriginal } from '../image/original.js';
@@ -78,7 +79,7 @@ router.get('/ping', (_req, res) => {
 // This endpoint is called directly by the UI.
 router.post('/upload', uploadRateLimit, fileParser, async (req, res) => {
   try {
-    res.json(await upload(req.file));
+    res.json(await upload(req.file, { preview: req.query['preview'] === '1' }));
   } finally {
     // the file received, if it was not renamed. Multer names it in the temp folder; the check keeps any other path out.
     if (req.file) {
@@ -90,16 +91,21 @@ router.post('/upload', uploadRateLimit, fileParser, async (req, res) => {
   }
 });
 
-// The response: the key of the original, and its size as stored (width and height as displayed, size in bytes), but SVG
+// The response: the key of the original, and its size as stored (width and height as displayed, size in bytes), but SVG.
+// With ?preview=1, a small JPEG of it as a data URL (convert.ts), but SVG.
 interface Uploaded {
   success: true;
   filename: string;
   width?: number;
   height?: number;
   size?: number;
+  preview?: string;
 }
 
-const upload = async (uploadedFile?: Express.Multer.File): Promise<Uploaded> => {
+const upload = async (
+  uploadedFile: Express.Multer.File | undefined,
+  options: { preview: boolean }
+): Promise<Uploaded> => {
   const keyPrefix = generateUniqueKeyPrefix();
   const { file } = validate(uploadedFile && { file: uploadedFile }, UploadFiles);
 
@@ -139,6 +145,18 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<Uploaded> => 
 
   // HEIC: stored as JPEG, as the browsers do not display it (only Safari)
   const uploadedFormat = format;
+  // WebP, AVIF, TIFF, GIF: stored as JPEG, or PNG when transparent (GIF: PNG), reduced to the limits
+  if (CONVERTED_FORMATS.has(format)) {
+    try {
+      format = await convertImage(file.path, format, `${file.path}.converted`);
+      fs.renameSync(`${file.path}.converted`, file.path);
+    } catch (error) {
+      log.warn(error);
+      fs.rmSync(`${file.path}.converted`, { force: true });
+      promRefusedUploadsCounter.inc({ reason: 'format' });
+      throw createHttpError(400, 'Unsupported image format.');
+    }
+  }
   if (format === 'heic') {
     try {
       await convertHeicToJpeg(file.path, `${file.path}.jpg`);
@@ -163,12 +181,16 @@ const upload = async (uploadedFile?: Express.Multer.File): Promise<Uploaded> => 
       await autoOrient(tempStorage.path(originalKey));
     }
 
-    // over the limits of the originals: reduced (HEIC already are)
-    if (uploadedFormat !== 'heic') {
+    // over the limits of the originals: reduced (the converted images already are)
+    if (uploadedFormat === format) {
       await reduceOriginal(tempStorage.path(originalKey), `.${format}`);
     }
     // the image document takes its size from the original as stored (SVG: the size of the drawing, from the UI)
     stored = format === 'svg' ? {} : await describeOriginal(tempStorage.path(originalKey));
+    // for the UI, when the browser cannot decode the file
+    if (options.preview && format !== 'svg') {
+      stored.preview = await previewDataUrl(tempStorage.path(originalKey));
+    }
 
     // create resized images
     const { allRendered } = await createThumbnails(tempStorage.path(originalKey));
