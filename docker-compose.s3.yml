@@ -3,7 +3,7 @@
 # by the tests (test/environment/s3-global-setup.ts).
 services:
   s3:
-    image: ghcr.io/scality/cloudserver:9.5.2@sha256:17c40edbb0f10fd47d984dfc106268d4197f6190c7dd8957f7d23d3bc090ef2a
+    image: ghcr.io/scality/cloudserver:9.5.3@sha256:b0b0e12203be20e873c67eaf132208f79b372617c881fc5a87862b6168e11055
     environment:
       S3BACKEND: mem
       REMOTE_MANAGEMENT_DISABLE: '1'
