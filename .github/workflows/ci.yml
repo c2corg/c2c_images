@@ -60,7 +60,7 @@ jobs:
           docker run -d --name images -p 8080:8080 --health-interval=2s -e STORAGE_BACKEND=local -e INCOMING_FOLDER=/tmp/incoming \
             -e ACTIVE_FOLDER=/tmp/active -e API_SECRET_KEY=ci c2c_images:ci
           for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:8080/ping && break; sleep 1; done
-          for f in violin.jpg piano.png animated.gif pipe_organ.svg; do
+          for f in violin.jpg piano.png music.gif pipe_organ.svg; do
             curl -sf -F "file=@test/data/$f" http://localhost:8080/upload | tee /dev/stderr | grep -q '"filename"'
           done
           docker exec images ls -l /tmp/incoming

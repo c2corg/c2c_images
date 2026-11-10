@@ -15,9 +15,10 @@ The original image uploaded by the user is:
 
 - optionally rotated according to the EXIF orientation value;
 - converted when it is not JPEG, PNG or SVG (see below);
-- reduced when over the limits of the originals (all but SVG): 3072 px on the long side; panoramas (long side over twice the
-  short side) 2048 px on the short side and 16 megapixels at most. The UI
-  reduces the images before the upload: this is for the other clients;
+- reduced when over the limits of the originals (all but SVG): 3072 px on the
+  long side; panoramas (long side over twice the short side) 2048 px on the
+  short side and 16 megapixels at most. The UI reduces the images before the
+  upload: this is for the other clients;
 - uniquely renamed using a timestamp and random number;
 - stored locally in an "incoming" directory;
 - converted to smaller sizes.
