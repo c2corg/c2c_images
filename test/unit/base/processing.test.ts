@@ -31,13 +31,13 @@ describe('Format detection', () => {
     ['violin.jpg', 'jpg'],
     ['piano.png', 'png'],
     ['music.gif', 'gif'],
-    ['animated.gif', 'gif'],
+    ['music.tiff', 'tiff'],
     ['pipe_organ.svg', 'svg']
   ])('%s is %s', async (filename, format) => {
     expect(await getFileFormat(`test/data/${filename}`)).toBe(format);
   });
 
-  test.each(['music.tiff', 'invalid_content.jpg'])('%s is refused', async filename => {
+  test.each(['unsupported.bmp', 'invalid_content.jpg', 'animated.gif'])('%s is refused', async filename => {
     await expect(getFileFormat(`test/data/${filename}`)).rejects.toThrow('Unsupported image format.');
   });
 });

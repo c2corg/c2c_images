@@ -49,12 +49,12 @@ describe('HEIC', () => {
     expect(await getFileFormat(`test/data/${name}`)).toBe('heic');
   });
 
-  test('refuses AVIF', async () => {
+  test('tells AVIF (HEIF with AV1 images) from HEIC', async () => {
     const avif = path.join(dir, 'image.avif');
     await sharp({ create: { width: 16, height: 16, channels: 3, background: '#888' } })
       .avif()
       .toFile(avif);
-    await expect(getFileFormat(avif)).rejects.toThrow('Unsupported image format.');
+    expect(await getFileFormat(avif)).toBe('avif');
   });
 
   test.each(['heic-irot', 'heic-exif'])('converts %s upright, in sRGB, keeping its EXIF', async name => {

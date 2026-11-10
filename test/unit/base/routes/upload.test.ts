@@ -43,7 +43,7 @@ describe('POST /upload', () => {
   });
 
   test('refuses unsupported formats', async () => {
-    const response = await request(app).post('/upload').attach('file', 'test/data/music.tiff');
+    const response = await request(app).post('/upload').attach('file', 'test/data/unsupported.bmp');
     expect(response.status).toBe(400);
     expect(response.text).toBe('Unsupported image format.');
   });
@@ -57,7 +57,7 @@ describe('POST /upload', () => {
   test('removes the refused files from the temp folder', async () => {
     // the temp folder is shared with the tests running in parallel: follow the removal of this request's file
     const rm = vi.spyOn(fs.promises, 'rm');
-    const response = await request(app).post('/upload').attach('file', 'test/data/music.tiff');
+    const response = await request(app).post('/upload').attach('file', 'test/data/unsupported.bmp');
     expect(response.status).toBe(400);
     const [[file]] = rm.mock.calls as [[string]];
     expect(path.dirname(file)).toBe(TEMP_FOLDER);
@@ -124,6 +124,45 @@ describe('POST /upload', () => {
     expect(response.body).toMatchObject({ width: 3072, height: 2304, size: fs.statSync(stored).size });
     const { width, height } = await sharp(stored).metadata();
     expect({ width, height }).toEqual({ width: 3072, height: 2304 });
+  });
+
+  test('stores a WebP as JPEG, and refuses an animated one', async () => {
+    const webp = await sharp({ create: { width: 320, height: 240, channels: 3, background: '#c86432' } })
+      .webp()
+      .toBuffer();
+    const response = await request(app).post('/upload').attach('file', webp, 'photo.webp');
+    expect(response.status).toBe(200);
+    expect((response.body as { filename: string }).filename).toMatch(/^\d+_\d+\.jpg$/);
+
+    const animated = await sharp('test/data/animated.gif', { animated: true }).webp().toBuffer();
+    const refused = await request(app).post('/upload').attach('file', animated, 'animated.webp');
+    expect(refused.status).toBe(400);
+    expect(refused.text).toBe('Unsupported image format.');
+  });
+
+  test('stores a GIF as PNG, and refuses an animated one', async () => {
+    const response = await request(app).post('/upload').attach('file', 'test/data/music.gif');
+    expect(response.status).toBe(200);
+    expect((response.body as { filename: string }).filename).toMatch(/^\d+_\d+\.png$/);
+
+    const refused = await request(app).post('/upload').attach('file', 'test/data/animated.gif');
+    expect(refused.status).toBe(400);
+  });
+
+  test('answers a preview when asked, but for SVG', async () => {
+    const heic = await request(app).post('/upload?preview=1').attach('file', 'test/data/heic-irot.heic');
+    const { preview, width, height } = heic.body as { preview: string; width: number; height: number };
+    expect(preview).toMatch(/^data:image\/jpeg;base64,/);
+    const { width: previewWidth, height: previewHeight } = await sharp(
+      Buffer.from(preview.split(',')[1] ?? '', 'base64')
+    ).metadata();
+    // the stored original, upright, not enlarged
+    expect({ previewWidth, previewHeight }).toEqual({ previewWidth: width, previewHeight: height });
+
+    const withoutParameter = await request(app).post('/upload').attach('file', 'test/data/heic-irot.heic');
+    expect(withoutParameter.body).not.toHaveProperty('preview');
+    const svg = await request(app).post('/upload?preview=1').attach('file', 'test/data/pipe_organ.svg');
+    expect(svg.body).not.toHaveProperty('preview');
   });
 
   test('svg case', async () => {
