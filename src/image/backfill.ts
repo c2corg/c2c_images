@@ -31,6 +31,11 @@ export interface BackfillOptions {
   sanitizeSvg?: boolean | undefined;
   /** only the SVG originals: they can be done first, in a short pass */
   svgOnly?: boolean | undefined;
+  /**
+   * these originals only, in this order, instead of the scan of the storage: all their thumbnails rendered again, in
+   * their base format (JPEG for an SVG, the format of the original otherwise) and in AVIF, whatever is there already
+   */
+  keys?: readonly string[] | undefined;
   /** CSV file where to append filename,width,height,file_size of each original rendered (for the documents of v6_api) */
   sizes?: string | undefined;
   /** stop after the current batch */
@@ -124,9 +129,9 @@ export const backfillAvif = async (
         await createThumbnail(dir, key, config, '.avif');
         keys.push(`${path.parse(key).name}${config.suffix}.avif`);
         // the JPEG thumbnails of SVGs always: today's rendering is better (sanitizer, fonts, framing; #1199)
-        if (ext === '.svg' || (options.reencodeJpeg && ext === '.jpg')) {
+        if (ext === '.svg' || (options.reencodeJpeg && ext === '.jpg') || options.keys) {
           await createThumbnail(dir, key, config);
-          keys.push(`${path.parse(key).name}${config.suffix}.jpg`);
+          keys.push(`${path.parse(key).name}${config.suffix}${ext === '.svg' ? '.jpg' : ext}`);
         }
       }
       await Promise.all(keys.map(async thumbnail => temp.move(thumbnail, active)));
@@ -186,6 +191,23 @@ export const backfillAvif = async (
 
   const shouldStop = (): boolean =>
     Boolean(options.signal?.aborted) || (options.limit !== undefined && result.missing >= options.limit);
+
+  if (options.keys) {
+    for (const key of options.keys) {
+      if (shouldStop()) {
+        result.stopped = true;
+        break;
+      }
+      result.scanned++;
+      result.missing++;
+      batch.push(key);
+      if (batch.length >= options.concurrency) {
+        await runBatch();
+      }
+    }
+    await runBatch();
+    return result;
+  }
 
   for await (const key of active.keys(options.startAfter)) {
     for (const prefix of pending.keys()) {

@@ -89,6 +89,46 @@ describe('backfillAvif', { timeout: 60_000 }, () => {
     });
   });
 
+  test('renders all the thumbnails of the listed originals only, whatever is there', async () => {
+    put('3_3.png', 'piano.png');
+    put('3_3BI.png', 'piano.png');
+    const before = fs.statSync(path.join(dir, '1_12BI.avif')).size;
+    const result = await backfillAvif(
+      active,
+      tempStorage,
+      { ...options, keys: ['1_12.jpg', '3_3.png', '9_9.jpg'] },
+      log
+    );
+    expect(result).toMatchObject({
+      scanned: 3,
+      missing: 3,
+      rendered: 2,
+      failed: 1,
+      stopped: false,
+      lastKey: '9_9.jpg'
+    });
+    for (const suffix of ['BI', 'MI', 'SI']) {
+      expect(files()).toEqual(
+        expect.arrayContaining([`1_12${suffix}.jpg`, `1_12${suffix}.avif`, `3_3${suffix}.png`, `3_3${suffix}.avif`])
+      );
+    }
+    expect(fs.statSync(path.join(dir, '1_12BI.avif')).size).not.toBe(before);
+    // not listed: left as they are
+    expect(files()).not.toContain('1_1MI.jpg');
+    expect(files()).not.toContain('2_2BI.avif');
+  });
+
+  test('stops the listed originals at the limit', async () => {
+    const result = await backfillAvif(
+      active,
+      tempStorage,
+      { ...options, concurrency: 1, limit: 1, keys: ['1_1.jpg', '2_2.svg'] },
+      log
+    );
+    expect(result).toMatchObject({ rendered: 1, stopped: true, lastKey: '1_1.jpg' });
+    expect(files()).not.toContain('2_2BI.avif');
+  });
+
   test('renders the JPEG thumbnails again when asked', async () => {
     const before = fs.statSync(path.join(dir, '1_1BI.jpg')).size;
     await backfillAvif(active, tempStorage, { ...options, reencodeJpeg: true }, log);

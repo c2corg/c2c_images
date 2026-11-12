@@ -1,11 +1,15 @@
 // Renders the missing AVIF thumbnails of the published images, from their originals (c2corg/c2c_images#1160).
 //
 //   node scripts/backfill-avif.js [--dry-run] [--start-after=<key>] [--limit=<images>] [--concurrency=<n>]
-//     [--pause-ms=<ms>] [--reencode-jpeg] [--sanitize-svg] [--svg-only] [--sizes=<csv file>]
+//     [--pause-ms=<ms>] [--reencode-jpeg] [--sanitize-svg] [--svg-only] [--sizes=<csv file>] [--keys=<file>]
+//
+// --keys: a file with one original key per line (blank lines and # comments ignored). Only these images, all their
+// thumbnails rendered again (base format and AVIF), to repair some of them; --start-after and --svg-only do not apply.
 //
 // Resumable: each progress line gives the last image done; start again with --start-after=<it>. SIGINT and SIGTERM
 // stop it after the current batch. AVIF_EFFORT and AVIF_QUALITY apply as for the uploads.
 
+import fs from 'node:fs';
 import { parseArgs } from 'node:util';
 
 import { backfillAvif } from '../image/backfill.js';
@@ -22,7 +26,8 @@ const { values } = parseArgs({
     'reencode-jpeg': { type: 'boolean', default: false },
     'sanitize-svg': { type: 'boolean', default: false },
     'svg-only': { type: 'boolean', default: false },
-    sizes: { type: 'string' }
+    sizes: { type: 'string' },
+    keys: { type: 'string' }
   }
 });
 
@@ -36,6 +41,21 @@ const positive = (name: string, value: string | undefined): number | undefined =
   }
   return number;
 };
+
+const ORIGINAL = /^\d+_\d+\.(jpg|png|gif|svg)$/;
+const readKeys = (file: string): string[] => {
+  const keys = fs
+    .readFileSync(file, 'utf8')
+    .split('\n')
+    .map(line => line.replace(/#.*/, '').trim())
+    .filter(Boolean);
+  const invalid = keys.filter(key => !ORIGINAL.test(key));
+  if (invalid.length) {
+    throw new Error(`--keys: not original keys: ${invalid.slice(0, 5).join(', ')}`);
+  }
+  return keys;
+};
+const keys = values.keys === undefined ? undefined : readKeys(values.keys);
 
 const controller = new AbortController();
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
@@ -58,6 +78,7 @@ const result = await backfillAvif(
     sanitizeSvg: values['sanitize-svg'],
     svgOnly: values['svg-only'],
     sizes: values.sizes,
+    keys,
     signal: controller.signal
   },
   log
