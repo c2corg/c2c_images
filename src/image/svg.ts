@@ -8,7 +8,8 @@ import { MAX_SVG_IMAGE_PIXELS } from '../config.js';
 
 // Uploaded SVG are published as they are, on the media domain: only static drawings are kept. Scripts, event handlers,
 // animations, foreign objects and the references to anything outside the file (links, external images, CSS imports and
-// urls) are removed; local references (#id) and embedded raster images (data:image/...) stay.
+// urls) are removed; local references (#id) and embedded raster images (data:image/..., or data:;base64 with a raster
+// image, given its type) stay.
 
 const purify = createDOMPurify(new JSDOM('').window);
 
@@ -18,6 +19,36 @@ const externalUrl = /url\((?![\s'"]*#)/i;
 // image/jpg: not a registered type, but written by some editors, and shown by browsers. image/svg+xml: an SVG
 // referenced by <image> is rendered as an image, without scripts or external resources (logos in some topos)
 const allowedHref = /^(#|data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,])/i;
+
+// the raster type of embedded image data, from its first bytes
+const sniffImageType = (data: Buffer): string | undefined => {
+  if (data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return 'png';
+  }
+  if (data.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) {
+    return 'jpeg';
+  }
+  if (/^GIF8[79]a/.test(data.subarray(0, 6).toString('latin1'))) {
+    return 'gif';
+  }
+  if (data.subarray(0, 4).toString('latin1') === 'RIFF' && data.subarray(8, 12).toString('latin1') === 'WEBP') {
+    return 'webp';
+  }
+  return undefined;
+};
+
+// data:;base64,<data>: an image without its type (some editors wrote it so), that browsers and librsvg show from its
+// content. Given the type sniffed from the data, as the other embedded images; undefined if not a raster image.
+const typedDataUrl = (url: string): string | undefined => {
+  const prefix = /^data:;base64,/i.exec(url)?.[0];
+  if (!prefix) {
+    return undefined;
+  }
+  const payload = url.slice(prefix.length);
+  // 16 base64 characters give the 12 bytes the sniffing needs
+  const type = sniffImageType(Buffer.from(payload.slice(0, 16), 'base64'));
+  return type ? `data:image/${type};base64,${payload}` : undefined;
+};
 
 purify.addHook('uponSanitizeElement', (node, data) => {
   if (data.tagName === 'style') {
@@ -31,7 +62,11 @@ purify.addHook('uponSanitizeElement', (node, data) => {
 purify.addHook('uponSanitizeAttribute', (_node, data) => {
   const value = data.attrValue.trim();
   if (data.attrName === 'href' || data.attrName === 'xlink:href') {
-    data.keepAttr = allowedHref.test(value);
+    const typed = typedDataUrl(value);
+    if (typed) {
+      data.attrValue = typed;
+    }
+    data.keepAttr = allowedHref.test(typed ?? value);
   } else if (externalUrl.test(value)) {
     data.keepAttr = false;
   }

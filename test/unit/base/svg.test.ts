@@ -62,6 +62,50 @@ describe('sanitizeSvg', () => {
   });
 
   test.each([
+    ['JPEG', 'jpeg', 'jpeg'],
+    ['PNG', 'png', 'png'],
+    ['GIF', 'gif', 'gif'],
+    ['WebP', 'webp', 'webp']
+  ] as const)(
+    'keeps the embedded %s images without a type (data:;base64), given their type',
+    async (_, format, type) => {
+      const data = (
+        await sharp({ create: { width: 2, height: 2, channels: 3, background: 'red' } })
+          .toFormat(format)
+          .toBuffer()
+      ).toString('base64');
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image width="2" height="2" xlink:href="data:;base64,${data}"/></svg>`;
+      expect(sanitizeSvg(svg)).toContain(`xlink:href="data:image/${type};base64,${data}"`);
+    }
+  );
+
+  test.each([
+    ['not an image', 'data:;base64,PHN2Zy8+'],
+    ['not base64', 'data:,hello']
+  ])('removes the embedded data without a type, %s', (_, href) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image width="1" height="1" xlink:href="${href}"/></svg>`;
+    expect(sanitizeSvg(svg)).not.toContain('data:');
+  });
+
+  test('renders a photo embedded without its type as before the sanitizing', async () => {
+    const photo = (
+      await sharp({ create: { width: 20, height: 10, channels: 3, background: 'blue' } })
+        .jpeg()
+        .toBuffer()
+    ).toString('base64');
+    const original = Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="20" height="10"><image width="20" height="10" xlink:href="data:;base64,${photo}"/></svg>`
+    );
+    const render = async (svg: Buffer): Promise<Buffer> =>
+      sharp(svg, { density: 96 }).flatten({ background: 'white' }).raw().toBuffer();
+    const clean = Buffer.from(sanitizeSvg(original.toString('utf8')));
+    expect((await render(clean)).equals(await render(original))).toBe(true);
+    expect(
+      (await sharp(await render(clean), { raw: { width: 20, height: 10, channels: 3 } }).stats()).channels[2]?.mean
+    ).toBeGreaterThan(200);
+  });
+
+  test.each([
     ['quoted', `<rect fill="url('https://evil.example/a.svg#g')"/>`],
     ['spaced', '<rect fill="url( https://evil.example/a.svg#g )"/>'],
     ['in a style sheet', '<style>rect { fill: url("#g") } circle { fill: url(https://evil.example/a.svg#g) }</style>']
