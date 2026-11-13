@@ -12,9 +12,16 @@ sharp.cache(false);
 const MAX_INPUT_PIXELS = 16383 * 16383;
 
 // The input of every image operation, limited to MAX_INPUT_PIXELS against the decompression bombs.
-// SVG are rendered at SVG_DENSITY dpi, as rsvg-convert did; animated GIF keep all their frames when asked.
-export const openImage = (file: string | Buffer, options: { svg?: boolean; animated?: boolean } = {}): Sharp => {
-  const sharpOptions: SharpOptions = { failOn: 'error', limitInputPixels: MAX_INPUT_PIXELS };
+// SVG are rendered at SVG_DENSITY dpi, as rsvg-convert did; animated GIF keep all their frames when asked. A truncated
+// file is rendered as browsers show it (the missing part grey) when asked: the stored originals, never refused (#1218).
+export const openImage = (
+  file: string | Buffer,
+  options: { svg?: boolean; animated?: boolean; truncated?: boolean } = {}
+): Sharp => {
+  const sharpOptions: SharpOptions = {
+    failOn: options.truncated ? 'none' : 'error',
+    limitInputPixels: MAX_INPUT_PIXELS
+  };
   if (options.svg) {
     sharpOptions.density = SVG_DENSITY;
   }

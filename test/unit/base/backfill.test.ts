@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { backfillAvif, type BackfillOptions } from '../../../src/image/backfill.js';
@@ -184,6 +185,64 @@ describe('backfillAvif', { timeout: 60_000 }, () => {
     const all = fs.readFileSync(sizes, 'utf8').trim().split('\n');
     expect(all).toHaveLength(5);
     expect(all.filter(line => line.startsWith('filename'))).toHaveLength(1);
+  });
+
+  test('renders a truncated JPEG original as browsers show it (#1218)', async () => {
+    const jpeg = fs.readFileSync('test/data/violin.jpg');
+    fs.writeFileSync(path.join(dir, '0_7.jpg'), jpeg.subarray(0, Math.floor(jpeg.length * 0.6)));
+    const result = await backfillAvif(active, tempStorage, options, log);
+    expect(result).toMatchObject({ missing: 3, rendered: 3, failed: 0 });
+    expect(files()).toEqual(expect.arrayContaining(['0_7BI.avif', '0_7MI.avif', '0_7SI.avif']));
+  });
+
+  test('rebuilds the listed originals missing or empty from their biggest thumbnail, when asked', async () => {
+    // 5_5: no original, its BI and MI; 6_6: an empty original, its MI only; 7_7: nothing; 8_8: an SVG without original
+    put('5_5BI.jpg', 'violin.jpg');
+    put('5_5MI.jpg', 'autoorient.jpg');
+    fs.writeFileSync(path.join(dir, '6_6.png'), '');
+    put('6_6MI.png', 'piano.png');
+    put('8_8BI.jpg', 'violin.jpg');
+    const thumbnail = fs.readFileSync(path.join(dir, '5_5BI.jpg'));
+    const sizes = path.join(dir, 'sizes.csv');
+    const keys = ['5_5.jpg', '6_6.png', '7_7.jpg', '8_8.svg', '1_1.jpg'];
+
+    // without the option, a missing or empty original fails as before
+    expect(await backfillAvif(active, tempStorage, { ...options, keys }, log)).toMatchObject({
+      rendered: 1,
+      restored: 0,
+      failed: 4
+    });
+    expect(files()).not.toContain('5_5.jpg');
+
+    const result = await backfillAvif(
+      active,
+      tempStorage,
+      { ...options, keys, restoreFromThumbnail: true, sizes },
+      log
+    );
+    expect(result).toMatchObject({ rendered: 3, restored: 2, failed: 2 });
+    expect(fs.readFileSync(path.join(dir, '5_5.jpg')).equals(thumbnail)).toBe(true);
+    expect(fs.readFileSync(path.join(dir, '6_6.png')).equals(fs.readFileSync('test/data/piano.png'))).toBe(true);
+    for (const key of ['5_5', '6_6']) {
+      for (const suffix of ['BI', 'MI', 'SI']) {
+        expect(files()).toContain(`${key}${suffix}.avif`);
+      }
+    }
+    // the base thumbnails of a rebuilt original are left as they are, not encoded again from themselves
+    expect(fs.readFileSync(path.join(dir, '5_5BI.jpg')).equals(thumbnail)).toBe(true);
+    expect(files()).not.toContain('5_5SI.jpg');
+    expect(files()).not.toContain('6_6BI.png');
+    // nothing for 7_7, and an SVG cannot come back from its JPEG thumbnails
+    expect(files().filter(file => /^(7_7|8_8)/.test(file))).toEqual(['8_8BI.jpg']);
+    expect(log.info).toHaveBeenCalledWith('Backfill: 5_5.jpg rebuilt from 5_5BI.jpg');
+    expect(log.info).toHaveBeenCalledWith('Backfill: 6_6.png rebuilt from 6_6MI.png');
+    // the sizes of the rebuilt originals, as stored
+    expect(fs.readFileSync(sizes, 'utf8').trim().split('\n').slice(1).sort()).toEqual([
+      `1_1.jpg,426,592,${fs.statSync('test/data/violin.jpg').size}`,
+      `5_5.jpg,426,592,${thumbnail.length}`,
+      `6_6.png,${(await sharp('test/data/piano.png').metadata()).width},${(await sharp('test/data/piano.png').metadata()).height},${fs.statSync('test/data/piano.png').size}`
+    ]);
+    expect(fs.readdirSync(tempStorage.path()).filter(file => /^(5_5|6_6|7_7|8_8)[A-Z.]/.test(file))).toEqual([]);
   });
 
   test('counts a failed image and goes on', async () => {
