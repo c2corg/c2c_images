@@ -5,9 +5,18 @@
 ![Github code scanning](https://github.com/c2corg/c2c_images/actions/workflows/codeql-analysis.yml/badge.svg)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/95980766784c4f99865629175b4c96b6)](https://www.codacy.com/gh/c2corg/c2c_images/dashboard)
 
-This project handles receiving images from the user and generating smaller
-versions. It is using docker to be able to run it either together with the
-API machine or on a separate machine.
+This service receives the images uploaded by the users of
+[camptocamp.org](https://www.camptocamp.org) and renders their thumbnails
+(`BI` 1500 px, `MI` 400 px, `SI` 200 px; JPEG or PNG, and AVIF) with
+[sharp](https://sharp.pixelplumbing.com). It stores them in S3 buckets
+(Exoscale SOS), published on the media domain. c2c_ui uploads the images,
+v6_api publishes, rotates and deletes them.
+
+It runs as a Docker image (`c2corg/c2c_images`), deployed on the production
+hosts `images0` and `images1` from
+[v6-docker-compose](https://github.com/c2corg/v6-docker-compose)
+(`composition/production/images0`, shared by `images1`; `images_version` for
+the v7 fleet).
 
 ## Upload
 
@@ -19,11 +28,13 @@ The original image uploaded by the user is:
   long side; panoramas (long side over twice the short side) 2048 px on the
   short side and 16 megapixels at most. The UI reduces the images before the
   upload: this is for the other clients;
+- an SVG is sanitized: only static drawings are kept (no scripts, event
+  handlers, animations or external references);
 - uniquely renamed using a timestamp and random number;
-- stored locally in an "incoming" directory;
-- converted to smaller sizes.
+- converted to smaller sizes, in a temporary folder.
 
-The image is uploaded immediately to the incoming storage.
+The image and its JPEG/PNG thumbnails are uploaded immediately to the incoming
+storage, the AVIF thumbnails after the answer.
 The user receives the renamed filename, and the size of the original as
 stored (but SVG).
 
@@ -305,7 +316,18 @@ other names the SVGs of the site use to the closest installed font
 
 ## Creating a version
 
-Use `npm version`.
+1. A pull request with the new version in package.json and package-lock.json
+   only, merged:
+   `npm version <major|minor|patch> --no-git-tag-version --ignore-scripts`.
+2. Once CI is green on main, an annotated tag `vX.Y.Z` on its merge commit,
+   pushed. CI publishes the Docker image `c2corg/c2c_images:vX.Y.Z` (a classic
+   v2 manifest, which the Docker 1.12 of the production hosts can pull) and
+   creates the GitHub release.
+3. The deployment: the image version in v6-docker-compose
+   (`composition/production/images0/docker-compose.yml`, and `images_version`
+   for the v7 fleet), then `docker-compose pull` and `up -d` on `images1`, then
+   `images0`, after `source /opt/c2corg-docker/server-list.env` (the compose
+   file reads the HAProxy addresses from it).
 
 ## AVIF backfill
 
@@ -330,6 +352,17 @@ it differs, after their thumbnails: their scripts, event handlers and external
 references could run when the file is opened directly. It takes every SVG,
 with its AVIF thumbnails or not. `--svg-only` takes the SVG originals only,
 to do them first.
+
+`--keys=<file>`: only the originals listed in the file (one key per line,
+blank lines and `#` comments ignored), all their thumbnails rendered again
+(base format and AVIF), whatever is there; `--start-after` and `--svg-only`
+do not apply. With `--restore-from-thumbnail`, a listed original missing or
+empty (0 bytes) is rebuilt from its biggest base thumbnail (`BI`, else `MI`,
+else `SI`; not for SVG) and stored, and only its AVIF thumbnails are rendered.
+
+A truncated original (a broken upload) is rendered as browsers show it, the
+missing part grey. An SVG embedding raster images over `MAX_SVG_IMAGE_PIXELS`
+is skipped (counted as failed).
 
 `--sizes=<file>` appends `filename,width,height,file_size` of each original
 rendered to a CSV file (created with its header), for the image documents of
@@ -369,4 +402,7 @@ You can disable all metrics by setting `DISABLE_PROMETHEUS_METRICS` to `1`.
 ## v6_images
 
 This project is a reimplementation of <https://github.com/c2corg/v6_images>
-in node / typescript.
+in Node.js / TypeScript, with the same HTTP API. It replaced it in production
+on 2026-11-07 (c2corg/c2c_images#1160). The originals and thumbnails stored by
+v6_images are kept as they were; their AVIF thumbnails were rendered by the
+backfill (2026-11-09 to 2026-11-13).
