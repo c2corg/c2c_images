@@ -18,6 +18,15 @@ hosts `images0` and `images1` from
 (`composition/production/images0`, shared by `images1`; `images_version` for
 the v7 fleet).
 
+## Architecture diagrams
+
+Click a diagram to open its interactive version (zoom, search, details, links to the source code). All the diagrams of camptocamp.org: <https://c2corg.github.io/v6_api/>.
+
+### Images (c2c_images)
+
+[![Images (c2c_images)](docs/architecture/images.png)](https://c2corg.github.io/v6_api/architecture/images.html)
+
+
 ## Upload
 
 The original image uploaded by the user is:
