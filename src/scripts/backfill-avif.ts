@@ -2,9 +2,14 @@
 //
 //   node scripts/backfill-avif.js [--dry-run] [--start-after=<key>] [--limit=<images>] [--concurrency=<n>]
 //     [--pause-ms=<ms>] [--reencode-jpeg] [--sanitize-svg] [--svg-only] [--sizes=<csv file>] [--keys=<file>]
+//     [--restore-from-thumbnail]
 //
 // --keys: a file with one original key per line (blank lines and # comments ignored). Only these images, all their
 // thumbnails rendered again (base format and AVIF), to repair some of them; --start-after and --svg-only do not apply.
+//
+// --restore-from-thumbnail (with --keys): a listed original missing or empty (0 bytes) is rebuilt from its biggest base
+// thumbnail and stored; only its AVIF thumbnails are rendered. The truncated originals are rendered as browsers show
+// them (#1218).
 //
 // Resumable: each progress line gives the last image done; start again with --start-after=<it>. SIGINT and SIGTERM
 // stop it after the current batch. AVIF_EFFORT and AVIF_QUALITY apply as for the uploads.
@@ -27,7 +32,8 @@ const { values } = parseArgs({
     'sanitize-svg': { type: 'boolean', default: false },
     'svg-only': { type: 'boolean', default: false },
     sizes: { type: 'string' },
-    keys: { type: 'string' }
+    keys: { type: 'string' },
+    'restore-from-thumbnail': { type: 'boolean', default: false }
   }
 });
 
@@ -56,6 +62,9 @@ const readKeys = (file: string): string[] => {
   return keys;
 };
 const keys = values.keys === undefined ? undefined : readKeys(values.keys);
+if (values['restore-from-thumbnail'] && !keys) {
+  throw new Error('--restore-from-thumbnail: only with --keys');
+}
 
 const controller = new AbortController();
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
@@ -79,6 +88,7 @@ const result = await backfillAvif(
     svgOnly: values['svg-only'],
     sizes: values.sizes,
     keys,
+    restoreFromThumbnail: values['restore-from-thumbnail'],
     signal: controller.signal
   },
   log

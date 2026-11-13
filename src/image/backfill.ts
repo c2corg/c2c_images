@@ -36,6 +36,12 @@ export interface BackfillOptions {
    * their base format (JPEG for an SVG, the format of the original otherwise) and in AVIF, whatever is there already
    */
   keys?: readonly string[] | undefined;
+  /**
+   * with keys: an original missing or empty is rebuilt from its biggest base thumbnail (BI, else MI, else SI; not for
+   * SVG, whose thumbnails are JPEG), stored as the original, and only its AVIF thumbnails rendered: the base ones are
+   * not encoded again from themselves
+   */
+  restoreFromThumbnail?: boolean | undefined;
   /** CSV file where to append filename,width,height,file_size of each original rendered (for the documents of v6_api) */
   sizes?: string | undefined;
   /** stop after the current batch */
@@ -50,6 +56,8 @@ export interface BackfillResult {
   rendered: number;
   /** SVG originals replaced by their sanitized copy */
   sanitized: number;
+  /** originals rebuilt from a thumbnail (restoreFromThumbnail) */
+  restored: number;
   failed: number;
   /** the last original done: resume after it */
   lastKey: string | undefined;
@@ -90,6 +98,7 @@ export const backfillAvif = async (
     missing: 0,
     rendered: 0,
     sanitized: 0,
+    restored: 0,
     failed: 0,
     lastKey: undefined,
     stopped: false
@@ -103,12 +112,37 @@ export const backfillAvif = async (
     await fs.promises.writeFile(options.sizes, 'filename,width,height,file_size\n');
   }
 
+  // the biggest base thumbnail of an original, copied to the temp storage as the original
+  const restoreFromThumbnail = async (key: string): Promise<string> => {
+    const { ext, name } = path.parse(key);
+    if (ext === '.svg') {
+      throw new Error('An SVG original cannot be rebuilt from its JPEG thumbnails');
+    }
+    const bySize = [...RESIZING_CONFIG].sort((a, b) => b.width * b.height - a.width * a.height);
+    for (const { suffix } of bySize) {
+      const thumbnail = `${name}${suffix}${ext}`;
+      if (await active.exists(thumbnail)) {
+        await active.copy(thumbnail, temp);
+        await fs.promises.rename(temp.path(thumbnail), temp.path(key));
+        return thumbnail;
+      }
+    }
+    throw new Error('No original and no thumbnail to rebuild it from');
+  };
+
   const render = async (key: string): Promise<void> => {
     const dir = temp.path();
     const { ext } = path.parse(key);
     try {
-      await active.copy(key, temp);
-      let fileSize = (await fs.promises.stat(temp.path(key))).size;
+      let restoredFrom: string | undefined;
+      if (!options.restoreFromThumbnail || (await active.exists(key))) {
+        await active.copy(key, temp);
+      }
+      let fileSize = fs.existsSync(temp.path(key)) ? (await fs.promises.stat(temp.path(key))).size : 0;
+      if (options.restoreFromThumbnail && !fileSize) {
+        restoredFrom = await restoreFromThumbnail(key);
+        fileSize = (await fs.promises.stat(temp.path(key))).size;
+      }
       // the old SVGs were stored as uploaded (v6_images): rendered from their sanitized copy, the original unchanged
       // unless sanitizeSvg
       let replaceOriginal = false;
@@ -126,11 +160,12 @@ export const backfillAvif = async (
       const size = options.sizes ? await imageSize(temp.path(key)) : undefined;
       const keys: string[] = [];
       for (const config of RESIZING_CONFIG) {
-        await createThumbnail(dir, key, config, '.avif');
+        // a truncated original rendered as browsers show it (#1218)
+        await createThumbnail(dir, key, config, '.avif', { truncated: true });
         keys.push(`${path.parse(key).name}${config.suffix}.avif`);
         // the JPEG thumbnails of SVGs always: today's rendering is better (sanitizer, fonts, framing; #1199)
-        if (ext === '.svg' || (options.reencodeJpeg && ext === '.jpg') || options.keys) {
-          await createThumbnail(dir, key, config);
+        if (!restoredFrom && (ext === '.svg' || (options.reencodeJpeg && ext === '.jpg') || options.keys)) {
+          await createThumbnail(dir, key, config, undefined, { truncated: true });
           keys.push(`${path.parse(key).name}${config.suffix}${ext === '.svg' ? '.jpg' : ext}`);
         }
       }
@@ -141,6 +176,11 @@ export const backfillAvif = async (
         await temp.move(key, active);
         result.sanitized++;
         log.info(`Backfill: ${key} replaced by its sanitized copy`);
+      }
+      if (restoredFrom) {
+        await temp.move(key, active);
+        result.restored++;
+        log.info(`Backfill: ${key} rebuilt from ${restoredFrom}`);
       }
       if (options.sizes && size) {
         await fs.promises.appendFile(options.sizes, `${key},${size.width},${size.height},${fileSize}\n`);
@@ -167,7 +207,7 @@ export const backfillAvif = async (
     }
     result.lastKey = keys.at(-1);
     log.info(
-      `Backfill: ${result.scanned} images seen, ${result.missing} without AVIF, ${result.rendered} rendered, ${result.sanitized} SVG sanitized, ${result.failed} failed, last ${result.lastKey}`
+      `Backfill: ${result.scanned} images seen, ${result.missing} without AVIF, ${result.rendered} rendered, ${result.sanitized} SVG sanitized, ${result.restored} restored, ${result.failed} failed, last ${result.lastKey}`
     );
   };
 

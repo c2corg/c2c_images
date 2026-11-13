@@ -27,7 +27,8 @@ export const createThumbnail = async (
   dir: string,
   originalKey: string,
   config: ResizeConfig,
-  format?: string
+  format?: string,
+  { truncated = false }: { truncated?: boolean } = {}
 ): Promise<void> => {
   const { ext } = path.parse(originalKey);
   const originalPath = path.join(dir, originalKey);
@@ -41,7 +42,8 @@ export const createThumbnail = async (
   // animated GIF stay animated in GIF and WebP (AVIF has no animation in libvips)
   let image = openImage(originalPath, {
     svg: ext === '.svg',
-    animated: ext === '.gif' && (resizedExt === '.gif' || resizedExt === '.webp')
+    animated: ext === '.gif' && (resizedExt === '.gif' || resizedExt === '.webp'),
+    truncated
   }).autoOrient();
   if (ext === '.svg') {
     image = image.flatten({ background: 'white' });
