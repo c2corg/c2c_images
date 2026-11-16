@@ -28,6 +28,9 @@ export const DeleteBody = z.object({
     .transform(value => (Array.isArray(value) ? value : [value]))
 });
 
+// the same parameters as /delete
+export const RestoreBody = DeleteBody;
+
 export const RotateBody = z.object({
   rotation: z.enum(['-90', '90', '180']).optional(),
   filename: FilenameSchema

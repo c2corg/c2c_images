@@ -19,6 +19,7 @@ import { CONVERTED_FORMATS, convertImage, previewDataUrl } from '../image/conver
 import { getFileFormat } from '../image/filetype.js';
 import { convertHeicToJpeg } from '../image/heic.js';
 import { describeOriginal, reduceOriginal } from '../image/original.js';
+import { restoreImage } from '../image/restore.js';
 import { rotateImages } from '../image/rotate.js';
 import { checkEmbeddedImages, sanitizeSvgFile } from '../image/svg.js';
 import { removeFromTemp } from '../image/temp.js';
@@ -31,6 +32,7 @@ import {
   promPublishedImagesCounter,
   promPublishedThumbnailsErrorCounter,
   promRefusedUploadsCounter,
+  promRestoredImagesCounter,
   promRotatedImagesCounter,
   promUploadedImagesCounter
 } from '../metrics/prometheus.js';
@@ -38,7 +40,7 @@ import { activeStorage, incomingStorage, tempStorage } from '../storage/storage.
 
 import { apiOnly } from './apionly.js';
 import { generateUniqueKeyPrefix } from './utils.js';
-import { DeleteBody, PublishBody, RotateBody, UploadFiles, validate } from './validation.js';
+import { DeleteBody, PublishBody, RestoreBody, RotateBody, UploadFiles, validate } from './validation.js';
 
 export const router = Router();
 // v6_api posts form-encoded bodies, the filenames of /delete as repeated fields
@@ -296,6 +298,18 @@ router.post('/delete', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) =
   res.json({ success: true });
 });
 
+// Restore deleted files in the active storage, from the versions the bucket keeps for a while
+// Only called by api service, when a moderator restores a deleted image document
+router.post('/restore', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) => {
+  const { filenames: keys } = validate(req.body, RestoreBody);
+
+  const results = await Promise.all(keys.map(async key => ({ key, restored: await restoreImage(key) })));
+
+  const missing = results.filter(({ restored }) => !restored).map(({ key }) => key);
+  promRestoredImagesCounter.inc(keys.length - missing.length);
+  res.json({ success: true, missing });
+});
+
 // Rotate the image and return a new key
 // Only called by api service
 router.post('/rotate', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) => {
@@ -327,6 +341,6 @@ const methodNotAllowed =
     res.set('Allow', allow).status(405).type('text/plain').send('Method Not Allowed');
   };
 router.all('/ping', methodNotAllowed('HEAD, GET'));
-for (const path of ['/upload', '/publish', '/delete', '/rotate']) {
+for (const path of ['/upload', '/publish', '/delete', '/restore', '/rotate']) {
   router.all(path, methodNotAllowed('POST'));
 }

@@ -8,10 +8,12 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
+  ListObjectVersionsCommand,
   ObjectCannedACL,
   PutObjectCommand,
   S3Client,
-  type ListObjectsV2CommandOutput
+  type ListObjectsV2CommandOutput,
+  type ListObjectVersionsCommandOutput
 } from '@aws-sdk/client-s3';
 import sanitize from 'sanitize-filename';
 import { z } from 'zod';
@@ -28,6 +30,8 @@ export abstract class Storage {
   public abstract copy(key: string, destinationStorage: Storage): Promise<void>;
   public abstract move(key: string, destinationStorage: Storage): Promise<void>;
   public abstract lastModified(key: string): Promise<Date | undefined>;
+  /** Brings back a deleted key from the versions the storage keeps, true when the key exists afterwards */
+  public abstract restore(key: string): Promise<boolean>;
   /** The keys of the storage in ascending order, after `startAfter` if given */
   public abstract keys(startAfter?: string): AsyncGenerator<string>;
 }
@@ -88,6 +92,11 @@ export class LocalStorage implements Storage {
   public async lastModified(key: string): Promise<Date> {
     const stats = await fsPromises.stat(this.path(key));
     return stats.mtime;
+  }
+
+  // a local storage keeps no versions: only a key still there is restored
+  public async restore(key: string): Promise<boolean> {
+    return this.exists(key);
   }
 
   public async *keys(startAfter?: string): AsyncGenerator<string> {
@@ -161,13 +170,14 @@ export class S3Storage implements Storage {
     }
   }
 
-  public async get(key: string): Promise<Buffer> {
+  public async get(key: string, versionId?: string): Promise<Buffer> {
     const { Body } = await this.#timed(
       'get',
       this.#client.send(
         new GetObjectCommand({
           Bucket: this.#bucketName,
-          Key: key
+          Key: key,
+          ...(versionId ? { VersionId: versionId } : {})
         })
       )
     );
@@ -182,7 +192,10 @@ export class S3Storage implements Storage {
   }
 
   public async put(key: string, originalFilePath: string): Promise<void> {
-    const buffer = fs.readFileSync(originalFilePath);
+    await this.#putBuffer(key, fs.readFileSync(originalFilePath));
+  }
+
+  async #putBuffer(key: string, buffer: Buffer): Promise<void> {
     const expires = this.#shouldExpire ? new Date(Date.now() + INCOMING_MAX_AGE_HOURS * 1000 * 60 * 60) : undefined;
     await this.#timed(
       'put',
@@ -250,6 +263,48 @@ export class S3Storage implements Storage {
       )
     );
     return LastModified;
+  }
+
+  // The bucket keeps the versions of the deleted keys for a while (c2corg-active: 30 days). Its policy denies deleting
+  // a version, so the delete marker stays: the last version is read and put again, with the headers and ACL of a put.
+  public async restore(key: string): Promise<boolean> {
+    if (await this.exists(key)) {
+      return true;
+    }
+    const versionId = await this.#lastVersionId(key);
+    if (!versionId) {
+      return false;
+    }
+    await this.#putBuffer(key, await this.get(key, versionId));
+    return true;
+  }
+
+  // the most recent version of the key, delete markers excluded
+  async #lastVersionId(key: string): Promise<string | undefined> {
+    let last: { id: string; date: Date } | undefined;
+    let keyMarker: string | undefined;
+    let versionIdMarker: string | undefined;
+    do {
+      const page: ListObjectVersionsCommandOutput = await this.#timed(
+        'list_versions',
+        this.#client.send(
+          new ListObjectVersionsCommand({
+            Bucket: this.#bucketName,
+            Prefix: key,
+            ...(keyMarker ? { KeyMarker: keyMarker, VersionIdMarker: versionIdMarker } : {})
+          })
+        )
+      );
+      for (const { Key, VersionId, LastModified } of page.Versions ?? []) {
+        // the prefix also matches longer keys
+        if (Key === key && VersionId && LastModified && (!last || LastModified > last.date)) {
+          last = { id: VersionId, date: LastModified };
+        }
+      }
+      keyMarker = page.IsTruncated ? page.NextKeyMarker : undefined;
+      versionIdMarker = page.NextVersionIdMarker;
+    } while (keyMarker);
+    return last?.id;
   }
 
   public async *keys(startAfter?: string): AsyncGenerator<string> {
