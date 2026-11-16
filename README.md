@@ -26,7 +26,6 @@ Click a diagram to open its interactive version (zoom, search, details, links to
 
 [![Images (c2c_images)](docs/architecture/images.png)](https://c2corg.github.io/v6_api/architecture/images.html)
 
-
 ## Upload
 
 The original image uploaded by the user is:
@@ -265,6 +264,26 @@ Parameters:
 
 Removes the image and its thumbnails from the active bucket.
 
+### restore
+
+`POST /restore`
+
+Parameters:
+
+- secret (secret key)
+- filenames (key(s) of the image(s) to restore)
+
+Brings back deleted images and their thumbnails in the active bucket, from the
+versions the bucket keeps (c2corg-active: versioning, deleted versions expire
+after 30 days). v6_api calls it when a moderator restores a deleted image
+document. The last version of each key is read and put again: the bucket policy
+denies deleting a version, so the delete markers stay. A local storage keeps no
+versions.
+
+Answers `{"success": true, "missing": [...]}`: `missing` lists the images
+without a version to restore. The thumbnails are restored when they have one
+(some formats never existed for older images).
+
 ### rotate
 
 `POST /rotate`
@@ -394,8 +413,8 @@ key, address or user agent):
   `format`, `svg`, `size`, `pixels`, `rate`), `rate_limited_requests_total`
   (`route`);
 - `published_images_total`, `unpublished_thumbnails_total`,
-  `deleted_images_total`, `rotated_images_total`, `reduced_originals_total`
-  (`format`);
+  `deleted_images_total`, `restored_images_total`, `rotated_images_total`,
+  `reduced_originals_total` (`format`);
 - `thumbnail_duration_seconds` (`format`, `size`),
   `rotation_duration_seconds`, `autoorient_duration_seconds`;
 - `s3_request_duration_seconds` (`operation`, `outcome`: `ok`, `not_found`,

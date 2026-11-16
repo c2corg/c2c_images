@@ -66,7 +66,7 @@ describe('v6_api', () => {
   const post = async (path: string, body: string): Promise<request.Response> =>
     request(app).post(path).type('form').send(body);
 
-  test('POST /publish then POST /delete of an uploaded image', async () => {
+  test('POST /publish, POST /delete then POST /restore of an uploaded image', async () => {
     const upload = await request(app).post('/upload').attach('file', 'test/data/piano.png');
     const { filename } = upload.body as { filename: string };
 
@@ -83,12 +83,18 @@ describe('v6_api', () => {
     expect(deletion.status).toBe(200);
     expect(deletion.body).toEqual({ success: true });
     expect(await activeStorage.exists(filename)).toBe(false);
+
+    // the local storage keeps no versions (see the S3 tests): the file is reported missing
+    const restore = await post('/restore', `secret=my+secret&filenames=${filename}`);
+    expect(restore.status).toBe(200);
+    expect(restore.body).toEqual({ success: true, missing: [filename] });
   });
 
   test.each([
     ['/publish', 'filename=1588000000_1.jpg'],
     ['/publish', 'secret=bad&filename=1588000000_1.jpg'],
-    ['/delete', 'secret=bad&filenames=1588000000_1.jpg']
+    ['/delete', 'secret=bad&filenames=1588000000_1.jpg'],
+    ['/restore', 'secret=bad&filenames=1588000000_1.jpg']
   ])('POST %s without the right secret is not a 200', async (path, body) => {
     const response = await post(path, body);
     expect([401, 403]).toContain(response.status);

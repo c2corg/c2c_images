@@ -1,9 +1,11 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { BucketAlreadyOwnedByYou, CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
+import { BucketAlreadyOwnedByYou, CreateBucketCommand, PutBucketVersioningCommand, S3Client } from '@aws-sdk/client-s3';
 
 // the buckets and credentials of env-vars.s3.js
 const BUCKETS = ['incoming', 'active'];
+// a bucket that keeps the versions of the deleted keys, as c2corg-active in production
+export const VERSIONED_BUCKET = 'versioned';
 
 const createBucket = async (client: S3Client, bucket: string): Promise<void> => {
   try {
@@ -26,7 +28,10 @@ export default async function setup(): Promise<void> {
   try {
     for (let attempt = 1; ; attempt++) {
       try {
-        await Promise.all(BUCKETS.map(async bucket => createBucket(client, bucket)));
+        await Promise.all([...BUCKETS, VERSIONED_BUCKET].map(async bucket => createBucket(client, bucket)));
+        await client.send(
+          new PutBucketVersioningCommand({ Bucket: VERSIONED_BUCKET, VersioningConfiguration: { Status: 'Enabled' } })
+        );
         return;
       } catch (error) {
         if (attempt >= 30) {
