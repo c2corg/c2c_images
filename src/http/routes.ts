@@ -19,6 +19,7 @@ import { CONVERTED_FORMATS, convertImage, previewDataUrl } from '../image/conver
 import { getFileFormat } from '../image/filetype.js';
 import { convertHeicToJpeg } from '../image/heic.js';
 import { describeOriginal, reduceOriginal } from '../image/original.js';
+import { restoreImage } from '../image/restore.js';
 import { rotateImages } from '../image/rotate.js';
 import { checkEmbeddedImages, sanitizeSvgFile } from '../image/svg.js';
 import { removeFromTemp } from '../image/temp.js';
@@ -302,20 +303,7 @@ router.post('/delete', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) =
 router.post('/restore', apiRateLimit, ...bodyParsers, apiOnly, async (req, res) => {
   const { filenames: keys } = validate(req.body, RestoreBody);
 
-  const results = await Promise.all(
-    keys.map(async key => {
-      if (!(await activeStorage.restore(key))) {
-        return { key, restored: false };
-      }
-      // some thumbnails may never have existed (formats added since, svg): only the original is required
-      await Promise.all(
-        allThumbnailKeys(key).map(thumbnail =>
-          activeStorage.restore(thumbnail).catch(() => log.error(`Restoring ${thumbnail} failed`))
-        )
-      );
-      return { key, restored: true };
-    })
-  );
+  const results = await Promise.all(keys.map(async key => ({ key, restored: await restoreImage(key) })));
 
   const missing = results.filter(({ restored }) => !restored).map(({ key }) => key);
   promRestoredImagesCounter.inc(keys.length - missing.length);

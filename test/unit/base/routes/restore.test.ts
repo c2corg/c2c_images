@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import request from 'supertest';
 import { describe, expect, test } from 'vitest';
 
@@ -46,5 +48,21 @@ describe('POST /restore', () => {
       .send(`secret=my+secret&filenames=1588000000_404.jpg&filenames=${key}.jpg&filenames=1588000000_405.png`);
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ success: true, missing: ['1588000000_404.jpg', '1588000000_405.png'] });
+  });
+
+  test('generates again the thumbnails without a version, from the original', async () => {
+    const key = generateUniqueKeyPrefix();
+    await activeStorage.put(`${key}.jpg`, 'test/data/violin.jpg');
+    // a thumbnail still there is kept as it is
+    await activeStorage.put(`${key}MI.jpg`, 'test/data/piano.png');
+
+    const response = await request(app)
+      .post('/restore')
+      .send({ secret: 'my secret', filenames: `${key}.jpg` });
+
+    expect(response.body).toEqual({ success: true, missing: [] });
+    expect(await activeStorage.exists(`${key}BI.jpg`)).toBe(true);
+    expect(await activeStorage.exists(`${key}SI.jpg`)).toBe(true);
+    expect(await activeStorage.get(`${key}MI.jpg`)).toEqual(fs.readFileSync('test/data/piano.png'));
   });
 });

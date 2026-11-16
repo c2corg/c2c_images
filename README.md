@@ -281,8 +281,9 @@ denies deleting a version, so the delete markers stay. A local storage keeps no
 versions.
 
 Answers `{"success": true, "missing": [...]}`: `missing` lists the images
-without a version to restore. The thumbnails are restored when they have one
-(some formats never existed for older images).
+without a version to restore. The thumbnails without a version (a format added
+since the upload, a thumbnail never published) are generated again from the
+restored original: the base ones before the answer, the modern formats after it.
 
 ### rotate
 
@@ -413,7 +414,8 @@ key, address or user agent):
   `format`, `svg`, `size`, `pixels`, `rate`), `rate_limited_requests_total`
   (`route`);
 - `published_images_total`, `unpublished_thumbnails_total`,
-  `deleted_images_total`, `restored_images_total`, `rotated_images_total`,
+  `deleted_images_total`, `restored_images_total`,
+  `regenerated_thumbnails_total`, `rotated_images_total`,
   `reduced_originals_total` (`format`);
 - `thumbnail_duration_seconds` (`format`, `size`),
   `rotation_duration_seconds`, `autoorient_duration_seconds`;

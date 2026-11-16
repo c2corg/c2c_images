@@ -90,6 +90,11 @@ export const promRestoredImagesCounter = new Counter({
   help: 'Deleted images restored in the active bucket, thumbnails not counted'
 });
 
+export const promRegeneratedThumbnailsCounter = new Counter({
+  name: `${PREFIX}regenerated_thumbnails_total`,
+  help: 'Thumbnails of restored images generated again from the original, without a version to restore'
+});
+
 export const promRotatedImagesCounter = new Counter({
   name: `${PREFIX}rotated_images_total`,
   help: 'Images rotated in the active bucket'
