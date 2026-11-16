@@ -10,7 +10,7 @@ This service receives the images uploaded by the users of
 (`BI` 1500 px, `MI` 400 px, `SI` 200 px; JPEG or PNG, and AVIF) with
 [sharp](https://sharp.pixelplumbing.com). It stores them in S3 buckets
 (Exoscale SOS), published on the media domain. c2c_ui uploads the images,
-v6_api publishes, rotates and deletes them.
+v6_api publishes, rotates, deletes and restores them.
 
 It runs as a Docker image (`c2corg/c2c_images`), deployed on the production
 hosts `images0` and `images1` from
@@ -162,9 +162,10 @@ event handlers, animations or references to external resources.
 `UPLOAD_RATE_LIMIT`: Uploads per minute and client address, on each instance
 (429 above). Default is `100`.
 
-`AUTH_FAILURE_RATE_LIMIT`: Requests to `/publish`, `/delete` and `/rotate`
-with a missing or bad secret, per minute and client address, on each instance.
-Then all of them are refused (429) until the end of the minute. Default is `10`.
+`AUTH_FAILURE_RATE_LIMIT`: Requests to `/publish`, `/delete`, `/restore` and
+`/rotate` with a missing or bad secret, per minute and client address, on each
+instance. Then all of them are refused (429) until the end of the minute.
+Default is `10`.
 
 `TRUST_PROXY`: Proxies whose `X-Forwarded-For` header gives the client
 address (Express' `trust proxy`): a number of hops, `true`, `false`, or a
