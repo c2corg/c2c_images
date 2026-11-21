@@ -72,6 +72,12 @@ const apiRateLimit = rateLimit({
 });
 const fileParser = multer({ dest: TEMP_FOLDER, limits: { fileSize: MAX_UPLOAD_SIZE, files: 1 } }).single('file');
 
+// The path of the uploaded file. Multer names it in the temp folder; the check keeps any other path out.
+const receivedPath = (file: Express.Multer.File): string | undefined => {
+  const received = path.resolve(TEMP_FOLDER, path.basename(file.path));
+  return received.startsWith(path.resolve(TEMP_FOLDER) + path.sep) ? received : undefined;
+};
+
 // Health endpoint
 router.get('/ping', (_req, res) => {
   res.type('text/plain').send('Pong!');
@@ -83,12 +89,10 @@ router.post('/upload', uploadRateLimit, fileParser, async (req, res) => {
   try {
     res.json(await upload(req.file, { preview: req.query['preview'] === '1' }));
   } finally {
-    // the file received, if it was not renamed. Multer names it in the temp folder; the check keeps any other path out.
-    if (req.file) {
-      const received = path.resolve(TEMP_FOLDER, path.basename(req.file.path));
-      if (received.startsWith(path.resolve(TEMP_FOLDER) + path.sep)) {
-        await fs.promises.rm(received, { force: true });
-      }
+    // the file received, if it was not renamed
+    const received = req.file && receivedPath(req.file);
+    if (received) {
+      await fs.promises.rm(received, { force: true });
     }
   }
 });
@@ -110,6 +114,10 @@ const upload = async (
 ): Promise<Uploaded> => {
   const keyPrefix = generateUniqueKeyPrefix();
   const { file } = validate(uploadedFile && { file: uploadedFile }, UploadFiles);
+  const filePath = receivedPath(file);
+  if (!filePath) {
+    throw createHttpError(400, 'Invalid upload.');
+  }
 
   const uploadImage = async (key: string): Promise<void> => tempStorage.move(key, incomingStorage);
   const uploadOriginalAndBaseThumbnails = async (key: string): Promise<void[]> =>
@@ -119,7 +127,7 @@ const upload = async (
 
   let format: string;
   try {
-    format = await getFileFormat(file.path);
+    format = await getFileFormat(filePath);
   } catch (error: unknown) {
     promRefusedUploadsCounter.inc({
       reason: error instanceof Error && error.message === 'Image too large.' ? 'pixels' : 'format'
@@ -131,14 +139,14 @@ const upload = async (
   // only static SVG are kept
   if (format === 'svg') {
     try {
-      await sanitizeSvgFile(file.path);
+      await sanitizeSvgFile(filePath);
     } catch {
       promRefusedUploadsCounter.inc({ reason: 'svg' });
       throw createHttpError(400, 'Unsupported image format.');
     }
     // the embedded images are decoded whole by librsvg, whatever the size of the rendering (#1215)
     try {
-      await checkEmbeddedImages(file.path);
+      await checkEmbeddedImages(filePath);
     } catch {
       promRefusedUploadsCounter.inc({ reason: 'pixels' });
       throw createHttpError(400, 'Image too large.');
@@ -150,22 +158,22 @@ const upload = async (
   // WebP, AVIF, TIFF, GIF: stored as JPEG, or PNG when transparent (GIF: PNG), reduced to the limits
   if (CONVERTED_FORMATS.has(format)) {
     try {
-      format = await convertImage(file.path, format, `${file.path}.converted`);
-      fs.renameSync(`${file.path}.converted`, file.path);
+      format = await convertImage(filePath, format, `${filePath}.converted`);
+      fs.renameSync(`${filePath}.converted`, filePath);
     } catch (error) {
       log.warn(error);
-      fs.rmSync(`${file.path}.converted`, { force: true });
+      fs.rmSync(`${filePath}.converted`, { force: true });
       promRefusedUploadsCounter.inc({ reason: 'format' });
       throw createHttpError(400, 'Unsupported image format.');
     }
   }
   if (format === 'heic') {
     try {
-      await convertHeicToJpeg(file.path, `${file.path}.jpg`);
-      fs.renameSync(`${file.path}.jpg`, file.path);
+      await convertHeicToJpeg(filePath, `${filePath}.jpg`);
+      fs.renameSync(`${filePath}.jpg`, filePath);
     } catch (error) {
       log.warn(error);
-      fs.rmSync(`${file.path}.jpg`, { force: true });
+      fs.rmSync(`${filePath}.jpg`, { force: true });
       promRefusedUploadsCounter.inc({ reason: 'format' });
       throw createHttpError(400, 'Unsupported image format.');
     }
@@ -174,7 +182,7 @@ const upload = async (
 
   // rename with 'official' extension
   const originalKey = `${keyPrefix}.${format}`;
-  fs.renameSync(file.path, tempStorage.path(originalKey));
+  fs.renameSync(filePath, tempStorage.path(originalKey));
   let stored: Omit<Uploaded, 'success' | 'filename'>;
 
   try {
