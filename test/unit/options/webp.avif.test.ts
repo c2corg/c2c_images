@@ -51,11 +51,9 @@ describe('Asynchronous generation of Webp and Avif enabled', () => {
       expect(response.status).toBe(200);
       const { filename } = JSON.parse(response.text) as { filename: string };
 
-      // initial image and thumbnails have been deleted
-      expect(await activeStorage.exists(`${key}.png`)).toBe(false);
-      for (const fileKey of baseThumbnailKeys(key)) {
-        expect(await activeStorage.exists(fileKey)).toBe(false);
-      }
+      // the initial image and its thumbnail are kept, for the old versions of the document
+      expect(await activeStorage.exists(`${key}.png`)).toBe(true);
+      expect(await activeStorage.exists(`${key}BI.png`)).toBe(true);
       // all thumbnails, even non existing thumbnails are now generated
       expect(await activeStorage.exists(filename)).toBe(true);
       for (const fileKey of baseThumbnailKeys(filename)) {
