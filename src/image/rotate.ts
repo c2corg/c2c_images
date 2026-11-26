@@ -6,7 +6,7 @@ import { activeStorage, tempStorage } from '../storage/storage.js';
 
 import { encode, openImage, ORIGINAL_JPEG_QUALITY, sharp } from './sharp.js';
 import { removeFromTemp } from './temp.js';
-import { allThumbnailKeys, baseThumbnailKeys, createThumbnails, modernThumbnailKeys } from './thumbnails.js';
+import { baseThumbnailKeys, createThumbnails, modernThumbnailKeys } from './thumbnails.js';
 
 const uploadImage = async (key: string): Promise<void> => tempStorage.move(key, activeStorage);
 const uploadOriginalAndBaseThumbnails = async (key: string): Promise<void[]> =>
@@ -59,12 +59,8 @@ export const rotateImages = async (originalKey: string, newKey: string, rotation
     throw error;
   }
 
-  // delete old images from active bucket
-  await Promise.all(
-    [originalKey, ...allThumbnailKeys(originalKey)].map(async key =>
-      activeStorage.delete(key).catch(() => log.error(`Deleting ${key} failed`))
-    )
-  );
+  // the old image and its thumbnails stay: the old versions of the image document still show them, and the api
+  // deletes them with the document
 
   allRendered
     .then(async () => Promise.all([tempStorage.delete(newKey), uploadModernThumbnails(newKey)]))
