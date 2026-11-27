@@ -298,6 +298,8 @@ Parameters:
 
 Rotates the image and its thumbnails in the active bucket.
 A new key will be returned, in order to avoid cache issues.
+The image and thumbnails of the old key are kept: the old versions of the
+image document still show them, and v6_api deletes them with the document.
 
 Note that SVG files cannot be rotated.
 

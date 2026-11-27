@@ -6,7 +6,7 @@ import { describe, expect, test } from 'vitest';
 import { app } from '../../../../src/http/app.js';
 import { generateUniqueKeyPrefix } from '../../../../src/http/utils.js';
 import { keyRegex } from '../../../../src/http/validation.js';
-import { allThumbnailKeys, baseThumbnailKeys } from '../../../../src/image/thumbnails.js';
+import { baseThumbnailKeys } from '../../../../src/image/thumbnails.js';
 import { activeStorage } from '../../../../src/storage/storage.js';
 import { imageInfo } from '../../../helpers/image.js';
 
@@ -66,11 +66,9 @@ describe('POST /rotate', () => {
     expect(newExt).toBe('.png');
     expect(response.status).toBe(200);
 
-    // initial image and all thumbnails have been deleted
-    expect(await activeStorage.exists(`${key}.png`)).toBe(false);
-    for (const fileKey of allThumbnailKeys(key)) {
-      expect(await activeStorage.exists(fileKey)).toBe(false);
-    }
+    // the initial image and its thumbnail are kept, for the old versions of the document
+    expect(await activeStorage.exists(`${key}.png`)).toBe(true);
+    expect(await activeStorage.exists(`${key}BI.png`)).toBe(true);
     // all thumbnails, even non initially existing ones are now generated
     expect(await activeStorage.exists(filename)).toBe(true);
     for (const fileKey of baseThumbnailKeys(filename)) {
